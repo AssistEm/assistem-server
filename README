@@ -1,1 +1,10 @@
-README
+# Caretaker App
+
+## Building and running
+Before you attempt to build and run make sure to install [node.js](http://nodejs.org) and [MongoDB](http://www.mongodb.org) on your computer. Then run:
+
+    $ npm install
+
+To start the server run:
+
+    $ node bin/www
