@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Register</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+		<h2>Register User Account</h2>
+
+		<form action="/user/register" method="POST">
+			<h4>Type:</h4>
+			<p>
+			<label for="type">
+				<input type="radio" name="type" value="caretaker">
+				Caretaker
+				<input type="radio" name="type" value="patient">
+				Patient
+			</label>
+			</p>
+
+			<h4>Account Info:</h4>
+			<label for="first name">
+				<p> <span>First Name:</span> </p>
+				<input type="text" name="first_name">
+			</label>
+
+			<label for="last name">
+				<p> <span>Last Name:</span> </p>
+				<input type="text" name="last_name">
+			</label>
+
+			<label for="phone">
+				<p> <span>Phone Number:</span> </p>
+				<input type="tel" name="phone"> 
+			</label>
+
+			<label for="email">
+				<p> <span>Email:</span> </p>
+				<input type="email" name="email">
+			</label>
+
+			<label for="password">
+				<p> <span>Password:</span> </p>
+				<input type="password" name="password"> 
+			</label>
+
+			<!--
+			<label for="confirm password">
+				<p> <span>Confirm password:</span> </p>
+				<input type="password" name="confirm_password"> 
+			</label>
+			-->
+
+			<p>
+			<input type="submit" value="Submit">
+			</p>
+		</form>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>User Home Page</title>
+		<link rel='stylesheet' href='/stylesheets/style.css' />
+	</head>
+	<body>
+		<h2>Welcome Back (<%= user.type %>)</h2>
+
+		<ul>
+			<li>First Name: <%= user.first_name %> </li>
+			<li>Last Name: <%= user.last_name %> </li>
+			<li>Phone: <%= user.phone %> </li>
+			<li>Email: <%= user.login_info.email %> </li>
+		</ul>
+
+		<a href="logout">Logout</a>
+	</body>
+</html>
