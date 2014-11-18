@@ -1,5 +1,17 @@
 # Caretaker App
 
+#NOTE:
+ Do NOT add code directly into the master branch. Develop in your own branch instead. The process for development is as follows:
+
+1. Create Branch
+2. Modify your branch with code
+3. Make sure your code works in your branch
+4. Merge *down* from master and make sure that it still works
+5. Make sure the newly updated code in your branch works
+6. Then and only then do you merge from your branch to the master branch.
+
+If we follow this process it will significantly reduce the amount of bugs we have.
+
 ## Building and running
 Before you attempt to build and run make sure to install [node.js](http://nodejs.org) and [MongoDB](http://www.mongodb.org) on your computer. Then run:
 
