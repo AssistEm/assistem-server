@@ -63,6 +63,30 @@ router.get('/logout', function(req, res) {
 	res.redirect('/');
 });
 
+router.get('/settings', ensureAuthenticated, function(req, res, next) {
+	res.render('settings', {user: req.user});
+});
+
+router.post('/settings', ensureAuthenticated, function(req, res, next) {
+	var first_name = req.body.first_name;
+	var last_name = req.body.last_name;
+	var phone = req.body.phone;
+	var email = req.body.email;
+	var password = req.body.password;
+
+	req.user.set('first_name', first_name);
+	req.user.set('last_name', last_name);
+	req.user.set('phone', phone);
+	req.user.set('email', email);
+	req.user.set('password', password);
+
+
+	console.log(req.user);
+	req.user.save();
+	res.render('home', {user: req.user});
+
+});
+
 router.get('/restricted', ensureAuthenticated, function(req, res, next) {
 	res.render('home', {user: req.user});
 });
