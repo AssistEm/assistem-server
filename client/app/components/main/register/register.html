@@ -1,0 +1,12 @@
+<h3>Registration Page</h3>
+
+<form ng-submit="submit(form)">
+	<p>Email</p>
+	<input ng-model="form.email" type="text" name="email" placeholder="Email">
+	<p>Password</p>
+	<input ng-model="form.password" type="password" name="password" placeholder="Password">
+	<br/>
+	<br/>
+	<p>{{ form }}</p>
+	<input type="submit" value="Submit">
+</form>
