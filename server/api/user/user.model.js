@@ -1,16 +1,50 @@
 var mongoose = require('mongoose');
 var bcrypt = require('bcrypt');
 var Schema = mongoose.Schema;
+var validate = require('mongoose-validator');
+
+/*
+ * Validations
+ */
+var emailValidator = [
+	validate({
+		validator: 'isEmail',
+		message: 'Email entered must be valid'
+	})
+];
+
+var passwordValidator = [
+	validate({
+		validator: 'isLength',
+		arguments: [6, 12],
+		message: 'Password must be of length 6 - 12'
+	}),
+	validate({
+		validator: 'isAlphanumeric',
+		message: 'Password may only contain alpha numeric values'
+	})
+];
 
 var UserSchema = new Schema({
 	first_name: String,
 	last_name: String,
-	type: String,
+	type: {
+		type: String,
+		required: true
+	},
 	phone: String,
 
 	login_info: {
-		email: String,
-		password: String,
+		email: {
+			type: String,
+			required: true,
+			validate: emailValidator
+		},
+		password: {
+			type: String,
+			required: true,
+			validate: passwordValidator
+		},
 		facebook_token: String,
 	},
 
