@@ -2,6 +2,7 @@ var User = require('./user.model');
 var passport = require('passport');
 var config = require('../../config/environment');
 var auth = require('../../auth/auth.service');
+var _ = require('lodash');
 
 var validationError = function(res, err) {
 	return res.status(422).json(err);
@@ -47,7 +48,7 @@ exports.create = function(req, res) {
 
 		var token = auth.createToken({_id: user._id});
 
-		res.json(token);
+		res.json({token: token, user: user});
 	});
 };
 
@@ -113,6 +114,29 @@ exports.changePassword = function(req, res, next) {
 
 				res.sendStatus(200);
 			});
+		});
+	});
+};
+
+/*
+ * Change a users settings
+ */
+exports.changeSettings = function(req, res, next) {
+	var userId = req.user._id;
+
+	User.findById(userId, '-login_info.password', function(err, user) {
+		if (err) {
+			return next(err);
+		}
+
+		_.merge(user, req.body);
+
+		user.save(function(err) {
+			if (err) {
+				return res.status(409).send(err);
+			}
+
+			res.sendStatus(200);
 		});
 	});
 };

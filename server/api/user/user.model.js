@@ -1,12 +1,8 @@
-/*
- * validate:
- * phone-number
- */
-
 var mongoose = require('mongoose');
 var bcrypt = require('bcrypt');
 var Schema = mongoose.Schema;
 var validate = require('mongoose-validator');
+var isPhone =require('is-phone'); // simple library, maybe build custom or use better later
 
 /*
  * Validations
@@ -15,6 +11,15 @@ var emailValidator = [
 	validate({
 		validator: 'isEmail',
 		message: 'Email entered must be valid'
+	})
+];
+
+var phoneValidator = [
+	validate({
+		validator: function(val) {
+			return isPhone(val);
+		},
+		message: 'Phone number entered must be valid'
 	})
 ];
 
@@ -37,7 +42,11 @@ var UserSchema = new Schema({
 		type: String,
 		required: true
 	},
-	phone: String,
+	phone: {
+		type: String,
+		required: true,
+		validate: phoneValidator
+	},
 
 	login_info: {
 		email: {
