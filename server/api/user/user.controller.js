@@ -50,7 +50,7 @@ exports.create = function(req, res) {
 	var newUser = new User({
 		first_name: faker.name.firstName(),
 		last_name: faker.name.lastName(),
-		type: 'caretaker',
+		type: req.body.type,
 		phone: faker.phone.phoneNumber(),
 		login_info: {
 			email: req.body.email,
