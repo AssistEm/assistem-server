@@ -13,10 +13,13 @@
 If we follow this process it will significantly reduce the amount of bugs we have. I think the best way to do this is everyone has their own branch with their name attached to it.
 
 ## Building and running
-Before you attempt to build and run make sure to install [node.js](http://nodejs.org) and [MongoDB](http://www.mongodb.org) on your computer. Then run:
+Before you attempt to build and run make sure to install [node.js](http://nodejs.org), [MongoDB](http://www.mongodb.org), and [Bower](http://bower.io/) on your computer. Then run:
 
     $ npm install
+    $ bower install
 
 To start the server run:
 
-    $ node bin/www
+    $ node server/app.js
+
+*You may need to run command as super user since server runs on port 80*
