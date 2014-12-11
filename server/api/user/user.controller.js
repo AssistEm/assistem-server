@@ -9,6 +9,26 @@ var validationError = function(res, err) {
 };
 
 /*
+ * User login
+ */
+exports.login = function(req, res, next) {
+	passport.authenticate('local', function(err, user, info) {
+		if (err) {
+			return res.status(401).json(err);
+		}
+
+		if (!user) {
+			return res.status(401).json(info);
+		}
+
+		var token = auth.createToken({_id: user._id});
+		user.login_info.password = undefined;
+
+		res.json({token: token, user: user});
+	})(req, res, next);
+};
+
+/*
  * Get list of useres
  */
 exports.index = function(req, res) {
