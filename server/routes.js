@@ -3,7 +3,7 @@ var config = require('./config/environment');
 
 module.exports = function(app) {
 	app.use('/api/user', require('./api/user'));
-	//app.use('/api/community', require('./api/community'));
+	app.use('/api/communities', require('./api/community'));
 
 	app.use('/auth', require('./auth'));
 

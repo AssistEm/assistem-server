@@ -15,7 +15,9 @@ router.post('/', function(req, res, next) {
 		}
 
 		var token = auth.createToken({_id: user._id});
-		res.json({token: token});
+		user.login_info.password = undefined;
+
+		res.json({token: token, user: user});
 	})(req, res, next);
 });
 

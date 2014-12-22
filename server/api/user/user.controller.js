@@ -2,9 +2,30 @@ var User = require('./user.model');
 var passport = require('passport');
 var config = require('../../config/environment');
 var auth = require('../../auth/auth.service');
+var _ = require('lodash');
 
 var validationError = function(res, err) {
 	return res.status(422).json(err);
+};
+
+/*
+ * User login
+ */
+exports.login = function(req, res, next) {
+	passport.authenticate('local', function(err, user, info) {
+		if (err) {
+			return res.status(401).json(err);
+		}
+
+		if (!user) {
+			return res.status(401).json(info);
+		}
+
+		var token = auth.createToken({_id: user._id});
+		user.login_info.password = undefined;
+
+		res.json({token: token, user: user});
+	})(req, res, next);
 };
 
 /*
@@ -29,7 +50,7 @@ exports.create = function(req, res) {
 	var newUser = new User({
 		first_name: faker.name.firstName(),
 		last_name: faker.name.lastName(),
-		type: 'caretaker',
+		type: req.body.type,
 		phone: faker.phone.phoneNumber(),
 		login_info: {
 			email: req.body.email,
@@ -47,7 +68,7 @@ exports.create = function(req, res) {
 
 		var token = auth.createToken({_id: user._id});
 
-		res.json(token);
+		res.json({token: token, user: user});
 	});
 };
 
@@ -113,6 +134,29 @@ exports.changePassword = function(req, res, next) {
 
 				res.sendStatus(200);
 			});
+		});
+	});
+};
+
+/*
+ * Change a users settings
+ */
+exports.changeSettings = function(req, res, next) {
+	var userId = req.user._id;
+
+	User.findById(userId, '-login_info.password', function(err, user) {
+		if (err) {
+			return next(err);
+		}
+
+		_.merge(user, req.body);
+
+		user.save(function(err) {
+			if (err) {
+				return res.status(409).send(err);
+			}
+
+			res.sendStatus(200);
 		});
 	});
 };
