@@ -35,6 +35,9 @@ var passwordValidator = [
 	})
 ];
 
+/*
+ * Schema
+ */
 var UserSchema = new Schema({
 	first_name: String,
 	last_name: String,
@@ -52,6 +55,7 @@ var UserSchema = new Schema({
 		email: {
 			type: String,
 			required: true,
+			unique: true,
 			validate: emailValidator
 		},
 		password: {
@@ -85,6 +89,17 @@ var UserSchema = new Schema({
 			reminder_event: Boolean
 		}
 	}
+});
+
+/*
+ * Virtuals
+ */
+UserSchema.virtual('email').set(function(email) {
+	this.login_info.email = email;
+});
+
+UserSchema.virtual('password').set(function(password) {
+	this.login_info.password = password;
 });
 
 /*

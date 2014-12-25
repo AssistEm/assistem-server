@@ -5,6 +5,11 @@ var auth = require('../../auth/auth.service');
 var _ = require('lodash');
 
 var validationError = function(res, err) {
+	if (err.code === 11000) {
+		// Duplicate user
+		return res.status(409).json(err);
+	}
+
 	return res.status(422).json(err);
 };
 
@@ -44,24 +49,13 @@ exports.index = function(req, res) {
 /*
  * Create a new user
  */
-var faker = require('faker');
-
 exports.create = function(req, res) {
-	var newUser = new User({
-		first_name: faker.name.firstName(),
-		last_name: faker.name.lastName(),
-		type: req.body.type,
-		phone: faker.phone.phoneNumber(),
-		login_info: {
-			email: req.body.email,
-			password: req.body.password
-		}
-	});
+	var user = _.merge(new User(), req.body);
 
 	// TODO Add w/e else properties that the server assumes
 	// of a new user, i.e. independent of user input
 
-	newUser.save(function(err, user) {
+	user.save(function(err, user) {
 		if (err) {
 			return validationError(res, err);
 		}
