@@ -1,4 +1,4 @@
-angular.module('caretakerApp', ['ui.router'])
+angular.module('caretakerApp', ['ui.router', 'ngResource'])
 
 .config(function($locationProvider, $urlRouterProvider, $httpProvider) {
 	$urlRouterProvider.otherwise('/');

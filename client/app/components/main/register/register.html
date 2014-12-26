@@ -2,11 +2,18 @@
 
 <form ng-submit="submit(form)">
 	<p>Email</p>
-	<input ng-model="form.email" type="text" name="email" placeholder="Email">
+	<input ng-model="form.email" type="email" placeholder="Email">
+
 	<p>Password</p>
-	<input ng-model="form.password" type="password" name="password" placeholder="Password">
-	<br/>
-	<br/>
-	<p>{{ form }}</p>
+	<input ng-model="form.password" type="password" placeholder="Password">
+
+	<p>Phone</p>
+	<input ng-model="form.phone" type="tel" placeholder="Password">
+
+	<p>Type</p>
+	<input type="radio" ng-model="form.type" value="caretaker"> Caretaker
+	<input type="radio" ng-model="form.type" value="patient"> Patient
+
+	</br></br>
 	<input type="submit" value="Submit">
 </form>
