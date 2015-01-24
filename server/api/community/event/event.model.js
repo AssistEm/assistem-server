@@ -11,7 +11,7 @@ var eventSchema = new Schema({
 	time: {
 		weeks_to_repeat: Number,
 		total_repeats: Number,
-		days_of_week: [String],
+		days_of_week: [Number],
 		start: Date,
 		end: Date
 	},
