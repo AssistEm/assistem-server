@@ -11,8 +11,11 @@ exports.index = function(req, res) {
 	});
 };
 
+var mongoose = require('mongoose');
 exports.create = function(req, res, next) {
 	var community = _.merge(new Community(), req.body);
+
+	community.patient = mongoose.Types.ObjectId();
 
 	community.save(function(err, community) {
 		if (err) {
