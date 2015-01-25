@@ -7,8 +7,6 @@ exports.index = function(req, res) {
 	var day = undefined; 
 	var weekOffset = 0;
 
-	console.log(req.query);
-
 	if (req.query) {
 		if (req.query.month && req.query.day) {
 			month = req.query.month - 1;
@@ -57,23 +55,21 @@ exports.index = function(req, res) {
 };
 
 exports.create = function(req, res) {
-
-	var prev = _.merge(new Event(), req.body, function(a, b) {
-		return _.isArray(a) ? a.concat(b) : undefined;
-	});
 	var newEvent = null;
-	//console.log(prev);
+	var prev = _.merge({}, req.body);
+	prev.time.start = new Date(prev.time.start);
+	prev.time.end = new Date(prev.time.end);
 
 	var events = [];
 	var weeks_to_repeat = req.body.time.weeks_to_repeat;
 	var days_of_week = req.body.time.days_of_week;
 
-	for (var i = 0; i < weeks_to_repeat; i++) {
+	for (var i = 0; i <= weeks_to_repeat; i++) {
 		for (var j = 0; j < days_of_week.length; j++) {
-			newEvent = _.clone(prev, true);
-			/*newEvent = _.merge(new Event(), prev, function(a, b) {
-				return _.isArray(a) ? a.concat(b) : undefined;
-			});*/
+			newEvent = _.merge({}, prev, function(a, b) {
+				return _.isDate(b) ? new Date(b.toISOString()) : undefined;
+			});
+
 			newEvent.community_id = req.community._id;
 
 			newEvent.time.start.setDate(newEvent.time.start.getDate() -
@@ -83,16 +79,32 @@ exports.create = function(req, res) {
 					(newEvent.time.end.getDay() - days_of_week[j]));
 
 			events.push(newEvent);
-		}
 
-		newEvent.time.start.setDate(newEvent.time.start.getDate() + (7 * i));
-		newEvent.time.end.setDate(newEvent.time.end.getDate() + (7 * i));
-		prev = newEvent;
+		}
+		prev = _.merge({}, newEvent, function(a, b) {
+			return _.isDate(b) ? new Date(b.toISOString()) : undefined;
+		});
+
+		prev.time.start.setDate(prev.time.start.getDate() + (7 * (i + 1)));
+		prev.time.end.setDate(prev.time.end.getDate() + (7 * (i + 1)));
 	}
 
-	console.log(events);
-	Event.collection.insert(events, function() {
-		console.log("saved events");
+	Event.collection.insert(events, function(err, docs) {
+		if (err) {
+			console.log(err);
+		} else {
+			console.log("events saved");
+			console.log(docs);
+
+			for (var i = 0; i < docs.length; i++) {
+				var curEvent = docs[0];
+				curEvent.sibling_events = [];
+
+				for (var j = 0; j < docs.length; j++) {
+					curEvent.sibling_events.push(docs[j]);
+				}
+			}
+		}
 	});
 };
 
