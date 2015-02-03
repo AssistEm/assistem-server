@@ -1,10 +1,11 @@
 var Event = require('./event.model');
+var EventGroup = require('./event.group.model');
+var moment = require('moment');
 var _ = require('lodash');
 
 exports.index = function(req, res) {
 	var date = new Date();
-	var month = undefined;
-	var day = undefined; 
+	var month, day;
 	var weekOffset = 0;
 
 	if (req.query) {
@@ -55,57 +56,99 @@ exports.index = function(req, res) {
 };
 
 exports.create = function(req, res) {
+	var b = req.body;
 	var newEvent = null;
-	var prev = _.merge({}, req.body);
-	prev.time.start = new Date(prev.time.start);
-	prev.time.end = new Date(prev.time.end);
 
-	var events = [];
-	var weeks_to_repeat = req.body.time.weeks_to_repeat;
-	var days_of_week = req.body.time.days_of_week;
+	b.community_id = req.community._id;
 
-	for (var i = 0; i <= weeks_to_repeat; i++) {
-		for (var j = 0; j < days_of_week.length; j++) {
-			newEvent = _.merge({}, prev, function(a, b) {
-				return _.isDate(b) ? new Date(b.toISOString()) : undefined;
-			});
+	// assuming have either single or repeated event
+	// single: only on one date
+	// repeated-one: same event, same time, repeated multiple times on same week
+	// repeated-more-than-one: similar to repeated-one except for more than one week
 
-			newEvent.community_id = req.community._id;
+		// repeated-one:
+		// bs: should have option to repeat same event, same time of day, on seperate
+		// days of the SAME week, i.e. not repeated beyond week of first occurance
 
-			newEvent.time.start.setDate(newEvent.time.start.getDate() -
-					(newEvent.time.start.getDay() - days_of_week[j]));
+	if (b.days_of_week) {
+		var events = [];
 
-			newEvent.time.end.setDate(newEvent.time.end.getDate() -
-					(newEvent.time.end.getDay() - days_of_week[j]));
+		for (var i = 0; i < b.days_of_week.length; i++) {
+			var day = b.days_of_week[i];
 
+			// create new event plain javascript object from req.body
+			newEvent = _.merge({}, b);
+
+			// modify dates accordingly
+			newEvent.start_time = moment(b.start_time).day(day).toDate();
+			newEvent.end_time = moment(b.end_time).day(day).toDate();
+
+			// add community id
+			/*event.community_id = req.community_id;*/
+
+			// push to events array
 			events.push(newEvent);
-
 		}
-		prev = _.merge({}, newEvent, function(a, b) {
-			return _.isDate(b) ? new Date(b.toISOString()) : undefined;
-		});
 
-		prev.time.start.setDate(prev.time.start.getDate() + (7 * (i + 1)));
-		prev.time.end.setDate(prev.time.end.getDate() + (7 * (i + 1)));
-	}
+		if (b.weeks_to_repeat) {
+			var repeatedWeeks = [];
 
-	Event.collection.insert(events, function(err, docs) {
-		if (err) {
-			console.log(err);
-		} else {
-			console.log("events saved");
-			console.log(docs);
+			for (var j = 1; j <= b.weeks_to_repeat.length; j++) {
+				events.forEach(function(day) {
+					newEvent = _.merge({}, day, function(a, b) {
+						return _.isDate(b) ? moment(b).add(j, 'w').toDate() : undefined;
+					});
 
-			for (var i = 0; i < docs.length; i++) {
-				var curEvent = docs[0];
-				curEvent.sibling_events = [];
-
-				for (var j = 0; j < docs.length; j++) {
-					curEvent.sibling_events.push(docs[j]);
-				}
+					repeatedWeeks.push(newEvent);
+				});
 			}
 		}
-	});
+
+		Event.collection.insert(events, function(err, docs) {
+			if (err) {
+				console.log(err);
+			} else {
+				console.log("repeated events saved");
+
+				// create new group
+				var group = new EventGroup();
+				group.events = [];
+
+				// add each eventId to group
+				for (var i = 0; i < docs.length; i++) {
+					group.events.push(docs[i]._id);
+				}
+
+				// save group to db
+				group.save(function(err, group) {
+					if (err) {
+						next(err);
+					} else {
+						console.log("    group saved");
+
+						res.send(docs);
+					}
+				});
+			}
+		});
+	} else {
+		// create new single event
+		// should work because of setters who also convert string to Date
+		console.log("got here");
+		newEvent = new Event(b);
+		console.log(newEvent);
+
+		// save single event
+		newEvent.save(function(err, newEvent) {
+			if (err) {
+				next(err);
+			} else {
+				console.log("single events saved");
+
+				res.send(newEvent);
+			}
+		});
+	}
 };
 
 exports.update = function(req, res) {
