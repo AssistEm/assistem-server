@@ -59,6 +59,7 @@ exports.create = function(req, res) {
 	var b = req.body;
 	var newEvent = null;
 
+	// add community id
 	b.community_id = req.community._id;
 
 	// assuming have either single or repeated event
@@ -83,9 +84,6 @@ exports.create = function(req, res) {
 			newEvent.start_time = moment(b.start_time).day(day).toDate();
 			newEvent.end_time = moment(b.end_time).day(day).toDate();
 
-			// add community id
-			/*event.community_id = req.community_id;*/
-
 			// push to events array
 			events.push(newEvent);
 		}
@@ -93,7 +91,7 @@ exports.create = function(req, res) {
 		if (b.weeks_to_repeat) {
 			var repeatedWeeks = [];
 
-			for (var j = 1; j <= b.weeks_to_repeat.length; j++) {
+			for (var j = 1; j <= b.weeks_to_repeat; j++) {
 				events.forEach(function(day) {
 					newEvent = _.merge({}, day, function(a, b) {
 						return _.isDate(b) ? moment(b).add(j, 'w').toDate() : undefined;
@@ -102,14 +100,14 @@ exports.create = function(req, res) {
 					repeatedWeeks.push(newEvent);
 				});
 			}
+
+			events = events.concat(repeatedWeeks);
 		}
 
 		Event.collection.insert(events, function(err, docs) {
 			if (err) {
-				console.log(err);
+				next(err);
 			} else {
-				console.log("repeated events saved");
-
 				// create new group
 				var group = new EventGroup();
 				group.events = [];
@@ -124,7 +122,6 @@ exports.create = function(req, res) {
 					if (err) {
 						next(err);
 					} else {
-						console.log("    group saved");
 
 						res.send(docs);
 					}
@@ -133,17 +130,13 @@ exports.create = function(req, res) {
 		});
 	} else {
 		// create new single event
-		// should work because of setters who also convert string to Date
-		console.log("got here");
 		newEvent = new Event(b);
-		console.log(newEvent);
 
 		// save single event
 		newEvent.save(function(err, newEvent) {
 			if (err) {
 				next(err);
 			} else {
-				console.log("single events saved");
 
 				res.send(newEvent);
 			}
@@ -152,6 +145,47 @@ exports.create = function(req, res) {
 };
 
 exports.update = function(req, res) {
+	// update single event, single event from repeated, 
+	//
+	// update single event or event from group
+	// single: just update single event
+	// group: either update all in group, selected event and newer, only selected
+	// event (in which case we remove from group)
+
+	var b = req.body;
+
+	if ('volunteer' in b) {
+		res.send({msg: "added user to volunteer"});
+	}
+
+	Event.findOne({_id: req.params.id}, function(err, event) {
+		if (err) {
+			next(err);
+		}
+
+		// check if in group
+		EventGroup.findOne({ events: event._id}, function(err, group) {
+			if (err) {
+				next(err);
+			}
+
+		});
+
+		// update according to passed in values
+		for (var property in b) {
+			if (b.hasOwnProperty(property)) {
+				event[property] = b[property];
+			}
+		}
+
+		event.save(function(err, event) {
+			if (err) {
+				next(err);
+			}
+
+			res.send(event);
+		});
+	});
 };
 
 exports.delete = function(req, res) {

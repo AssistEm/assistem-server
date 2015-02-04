@@ -14,6 +14,7 @@ router.delete('/:id', auth.isAuthenticated, controller.delete);
 // Communities/:id/Events
 var eventsRouter = require('./event');
 
+// TODO: use app.param instead
 router.use('/:id/events', function(req, res, next) {
 	// TODO: attach valid community to req
 	Community.findOne({name: 'test'}, function(err, community) {
