@@ -6,22 +6,57 @@ var Promise = require('bluebird');
 Promise.promisifyAll(User);
 Promise.promisifyAll(User.prototype);
 
-var serverRoot = 'localhost';
-mongoose.connect(serverRoot + '/ct1');
+
 
 describe('User endpoints', function() {
-	describe('Creating user with duplicate email', function() {
-		it('should fail and return status 409', function(done) {
-			var userInfo = {
-				first_name: 'John',
-				last_name: 'Doe',
-				type: 'test',
-				phone: '555-555-5555',
-				email: 'duplicate@test.com',
-				password: 'dupTest123'
-			};
-			var user = new User(userInfo);
 
+    //Set up environment
+    before(function(){
+        var serverRoot = 'localhost';
+        mongoose.connect(serverRoot + '/ct1');
+        db = mongoose.connection;
+    });
+
+
+    //Creates a new user based on correct info
+    beforeEach(function(){
+        userInfo = {
+            first_name: 'John',
+            last_name: 'Doe',
+            type: 'test',
+            phone: '555-555-5555',
+            email: 'make@test.com',
+            password: 'makeTest123'
+        };
+        user = new User(userInfo);
+    });
+
+    //Deletes a user from the database
+    afterEach(function(){
+        db.collection('users').remove({
+            first_name: 'John',
+            last_name: 'Doe'
+        }, function(err, res) {});
+
+    });
+
+    //Create a new valid user test
+    describe('Creating a new user with valid input', function(){
+       it('Should pass and return a 200 status', function(done) {
+           request
+               .post('/api/user')
+               .send(userInfo)
+               .expect(200)
+               .end(function(err, res) {
+                   if(err) {return done(err); }
+                   done();
+               });
+       });
+    });
+
+    //Create a conflicting user that should fail
+	describe('Creating user with duplicate email', function() {
+		it('should fail and return a 409 status', function(done) {
 			user.saveAsync().then(function() {
 				request
 				.post('/api/user')
@@ -29,12 +64,54 @@ describe('User endpoints', function() {
 				.expect(409)
 				.end(function(err, res) {
 					if (err) { return done(err); }
-
-					user.removeAsync().then(function() {
-						done();
-					});
+                    done();
 				});
 			});
 		});
 	});
+
+
+    //Create a bad user with invalid input
+    describe('Creating a user with bad information', function() {
+       it('should fail and return a 422 status', function(done) {
+           var badUserInfo = {
+               first_name: 'John',
+               last_name: 'Doe',
+               type: 'test',
+               phone: '555-555555',
+               email: 'make@',
+               password: '3'
+           };
+
+            request
+                .post('/api/user')
+                .send(badUserInfo)
+                .expect(422)
+                .end(function(err, res){
+                   if(err) { return done(err); }
+                    done();
+                });
+       });
+    });
+
+    describe('Deleting a valid user', function(){
+        it('Should pass and return a 204 status', function(done) {
+            user.saveAsync().then(function() {
+                var user_id = undefined;
+                db.collection('users').findOne({'first_name' : 'John', 'last_name' : 'Doe'}, function(err, res){
+                    user_id = res._id;
+                });
+
+                request
+                    .delete('/api/user/'+user_id)
+                    .expect(204)
+                    .end(function(err, res){
+                        if(err) {
+                            console.log(err);
+                            return done(err); }
+                        done();
+                        });
+                    });
+        });
+    });
 });

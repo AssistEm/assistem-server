@@ -13,7 +13,7 @@ Promise.promisifyAll(Community.prototype);
 Promise.promisifyAll(User);
 Promise.promisifyAll(User.prototype);
 
-var nock = require('nock');
+//var nock = require('nock');
 
 // Requires running server, currently uses server on local machine
 // TODO: Research, mocking so that we don't have to mess with production data
@@ -109,9 +109,10 @@ describe('Community Endpoints', function() {
 				res.status.should.equal(201);
 				res.body.should.be.an.Object;
 				res.body.should.not.be.empty;
-
+                console.log(res.body);
+                console.log(community._doc);
 				//TODO: Why '._doc'? Replace with easier to understand assertion.
-				res.body.should.containDeep(community._doc); 
+				res.body.should.containDeep(community._doc);
 
 				done();
 			});
