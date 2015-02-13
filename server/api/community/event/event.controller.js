@@ -161,6 +161,8 @@ exports.update = function(req, res) {
 	Event.findOne({_id: req.params.id}, function(err, event) {
 		if (err) {
 			next(err);
+		} else if (!event) {
+			res.status(404).json(err);
 		}
 
 		// check if in group
