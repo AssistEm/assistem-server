@@ -76,6 +76,7 @@ describe('event tests', function() {
 		});
 
 		it('should create repeated events in a single week', function(done) {
+			this.timeout(10000);
 			eventJSON.days_of_week = [1, 3, 5];
 
 			request(app)
@@ -89,8 +90,25 @@ describe('event tests', function() {
 
 					var b = res.body;
 
-					// TODO: add more assertions to test
 					b.should.have.lengthOf(3);
+					b.should.match(function(it) { it.should.be.an.Object });
+
+					var eventGroupId = b[0].group_id;
+
+					// for each returned event
+					for (var i = 0; i < b.length; i++) {
+						var returnedEvent = b[i];
+
+						// test appropriate days
+						returnedEvent.should
+							.have.propertyByPath('time', 'days_of_week')
+							.and.eql(eventJSON.days_of_week);
+
+						// test all in same group
+						returnedEvent.should
+							.have.propertyByPath('group_id')
+							.and.eql(eventGroupId);
+					}
 
 					done();
 				});
@@ -145,7 +163,7 @@ describe('event tests', function() {
 		});
 
 		it('should udpate start and end date of single event', function(done) {
-			updatedEvent = _.clone(event);
+			var updatedEvent = _.clone(event);
 			updatedEvent.start_time = moment(updatedEvent.start_time).add(1, 'd').toISOString();
 			updatedEvent.end_time = moment(updatedEvent.end_time).add(1, 'd').toISOString();
 
@@ -166,6 +184,10 @@ describe('event tests', function() {
 					done();
 				});
 		});
+
+		it('should update time data of desired event and future events in group'
+		//, function(done) {}
+		);
 
 	});
 });

@@ -72,6 +72,8 @@ exports.create = function(req, res) {
 		// days of the SAME week, i.e. not repeated beyond week of first occurance
 
 	if (b.days_of_week) {
+		var group = new EventGroup();
+		b.group_id = group._id;
 		var events = [];
 
 		for (var i = 0; i < b.days_of_week.length; i++) {
@@ -104,29 +106,30 @@ exports.create = function(req, res) {
 			events = events.concat(repeatedWeeks);
 		}
 
-		Event.collection.insert(events, function(err, docs) {
+		Event.create(events, function(err) {
 			if (err) {
 				next(err);
-			} else {
-				// create new group
-				var group = new EventGroup();
-				group.events = [];
+			}
 
-				// add each eventId to group
-				for (var i = 0; i < docs.length; i++) {
-					group.events.push(docs[i]._id);
+			var docs = Array.prototype.slice.call(arguments, 1);
+			docs = docs.sort();
+
+			// create new group
+			group.events = [];
+
+			// add each eventId to group
+			for (var i = 0; i < docs.length; i++) {
+				group.events.push(docs[i]._id);
+			}
+
+			// save group to db
+			group.save(function(err, group) {
+				if (err) {
+					next(err);
 				}
 
-				// save group to db
-				group.save(function(err, group) {
-					if (err) {
-						next(err);
-					} else {
-
-						res.send(docs);
-					}
-				});
-			}
+				res.send(docs);
+			});
 		});
 	} else {
 		// create new single event
@@ -166,12 +169,12 @@ exports.update = function(req, res) {
 		}
 
 		// check if in group
-		EventGroup.findOne({ events: event._id}, function(err, group) {
+		/*EventGroup.findOne({ events: event._id}, function(err, group) {
 			if (err) {
 				next(err);
 			}
 
-		});
+		});*/
 
 		// update according to passed in values
 		for (var property in b) {

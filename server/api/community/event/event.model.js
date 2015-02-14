@@ -8,7 +8,7 @@ var eventSchema = new Schema({
 	title: String,
 	description: String,
 	community_id: Schema.Types.ObjectId,
-	sibling_events: [Schema.Types.ObjectId],
+	group_id: Schema.Types.ObjectId,
 	time: {
 		weeks_to_repeat: Number,
 		total_repeats: Number,
