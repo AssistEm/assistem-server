@@ -39,7 +39,7 @@ describe('event tests', function() {
 
 	after(function() {
 		// drop test database
-		mongoose.connection.db.dropDatabase();
+		//mongoose.connection.db.dropDatabase();
 	});
 
 
@@ -185,9 +185,10 @@ describe('event tests', function() {
 				});
 		});
 
-		it('should update time data of desired event and future events in group'
-		//, function(done) {}
-		);
+		it('should update time data of desired event and future events in group', function(done) {
+			console.log(repeatedEvent);
+			var updatedRepeatedEvent = ._clone(event);
+		});
 
 	});
 });

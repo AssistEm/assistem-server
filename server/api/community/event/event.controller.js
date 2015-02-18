@@ -2,6 +2,7 @@ var Event = require('./event.model');
 var EventGroup = require('./event.group.model');
 var moment = require('moment');
 var _ = require('lodash');
+var Promise = require('bluebird');
 
 exports.index = function(req, res) {
 	var date = new Date();
@@ -139,10 +140,9 @@ exports.create = function(req, res) {
 		newEvent.save(function(err, newEvent) {
 			if (err) {
 				next(err);
-			} else {
-
-				res.send(newEvent);
 			}
+
+			res.send(newEvent);
 		});
 	}
 };
@@ -161,6 +161,8 @@ exports.update = function(req, res) {
 		res.send({msg: "added user to volunteer"});
 	}
 
+	// b should have event doing update on
+
 	Event.findOne({_id: req.params.id}, function(err, event) {
 		if (err) {
 			next(err);
@@ -168,28 +170,69 @@ exports.update = function(req, res) {
 			res.status(404).json(err);
 		}
 
-		// check if in group
-		/*EventGroup.findOne({ events: event._id}, function(err, group) {
-			if (err) {
-				next(err);
+		if (event.group_id) {
+			// group event
+			var conditions = {
+				group_id: event.group_id,
+				'time.start': { $gte: moment(event.time.start).toDate() }
+			};
+
+			var updates = _.clone({}, b);
+			console.log(updates);
+
+			var updatedEvents = [];
+			Event.find(conditions, function(err, events) {
+				if (err) {
+					next(err);
+				}
+
+				for (var i = 0; i < events.length; i++) {
+					updatedEvents.push(Event.update({_id: events[i]._id}, updates).exec());
+				}
+
+				Promise.all(updatedEvents).then(function() {
+					res.send(events);
+				});
+			});
+
+			/*
+			var conditions = {
+				group_id: event.group_id,
+				'time.start': { $gte: moment(event.time.start).toDate() }
+			};
+
+			var update = {
+			};
+
+			Event.update({
+				group_id: event.group_id,
+				'time.start': { $gte: moment(event.time.start).toDate() }
+				},
+				{ thingsToUpdate },
+				{ multi: true }
+
+			Event.find({group_id: event.group_id})
+				.where('time.start').gte().lte()
+				.exec(function(err, events) {
+				});
+			*/
+
+		} else {
+			// single event
+			for (var property in b) {
+				if (b.hasOwnProperty(property)) {
+					event[property] = b[property];
+				}
 			}
 
-		});*/
+			event.save(function(err, event) {
+				if (err) {
+					next(err);
+				}
 
-		// update according to passed in values
-		for (var property in b) {
-			if (b.hasOwnProperty(property)) {
-				event[property] = b[property];
-			}
+				res.send(event);
+			});
 		}
-
-		event.save(function(err, event) {
-			if (err) {
-				next(err);
-			}
-
-			res.send(event);
-		});
 	});
 };
 
