@@ -16,9 +16,17 @@ var eventsRouter = require('./event');
 
 // TODO: use app.param instead
 router.use('/:id/events', function(req, res, next) {
-	// TODO: attach valid community to req
-	Community.findOne({name: 'test'}, function(err, community) {
+	Community.findOne({_id: req.params.id}, function(err, community) {
+		if (err) {
+			next(err);
+		}
+
+		if (!community) {
+			res.json({msg: "community not found"});
+		}
+
 		req.community = community;
+
 		next();
 	});
 }, eventsRouter);
