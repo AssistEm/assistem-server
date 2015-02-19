@@ -71,8 +71,9 @@ exports.create = function(req, res) {
  */
 exports.show = function(req, res, next) {
 	var userId = req.params.id;
+	var community = req.user.caretaker_info.communities;
 
-	User.findById(userId, function(err, user) {
+	User.findById(userId).in(communities).exec(function(err, user) {
 		if (err) {
 			return next(err);
 		}
@@ -137,21 +138,15 @@ exports.changePassword = function(req, res, next) {
  */
 exports.changeSettings = function(req, res, next) {
 	var userId = req.user._id;
-
-	User.findById(userId, '-login_info.password', function(err, user) {
+	var updated_info = req.body;
+	
+	User.update({ '_id' : userId}, updated_info, function(err) {
 		if (err) {
-			return next(err);
+			console.log('err = ' + err);
+			return res.status(409).send(err);
 		}
 
-		_.merge(user, req.body);
-
-		user.save(function(err) {
-			if (err) {
-				return res.status(409).send(err);
-			}
-
-			res.sendStatus(200);
-		});
+		res.sendStatus(200);
 	});
 };
 
