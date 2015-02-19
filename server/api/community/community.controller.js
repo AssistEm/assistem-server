@@ -12,6 +12,7 @@ exports.index = function(req, res) {
 };
 
 var mongoose = require('mongoose');
+// TODO: only patient can create community 
 exports.create = function(req, res, next) {
 	var community = _.merge(new Community(), req.body);
 
@@ -26,7 +27,8 @@ exports.create = function(req, res, next) {
 	});
 };
 
-exports.update = function(req, res) {
+// TODO: only patient can update
+exports.update = function(req, res, next) {
 	var communityId = req.params.id;
 
 	Community.findById(communityId, function(err, community) {
