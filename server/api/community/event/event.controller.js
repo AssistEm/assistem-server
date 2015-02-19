@@ -142,7 +142,7 @@ exports.create = function(req, res) {
 				next(err);
 			}
 
-			res.send(newEvent);
+			res.send([newEvent]);
 		});
 	}
 };
@@ -177,7 +177,7 @@ exports.update = function(req, res) {
 				'time.start': { $gte: moment(event.time.start).toDate() }
 			};
 
-			var updates = _.clone({}, b);
+			var updates = {}; //_.clone({}, b);
 			console.log(updates);
 
 			var updatedEvents = [];

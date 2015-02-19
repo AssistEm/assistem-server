@@ -61,15 +61,18 @@ describe('event tests', function() {
 
 					var b = res.body;
 
-					b.should.have.properties({
-						time: {
-							days_of_week: [],
-							// TODO: seems kinda silly to create date only to convert into
-							// str immediately, research why returns date str with extra zero
-							start: (new Date(eventJSON.start_time)).toISOString(),
-							end: (new Date(eventJSON.end_time)).toISOString()
-						}
-					});
+					b.should.be.an.Array;
+					var returnedEvent = b.pop();
+
+					// TODO: seems kinda silly to create date only to convert into
+					// str immediately, research why returns date str with extra zero
+					returnedEvent.should.have
+						.propertyByPath('time', 'start')
+						.eql(moment(eventJSON.start_time).toISOString());
+
+					returnedEvent.should.have
+						.propertyByPath('time', 'end')
+						.eql(moment(eventJSON.end_time).toISOString());
 
 					done();
 				});
@@ -185,10 +188,9 @@ describe('event tests', function() {
 				});
 		});
 
-		it('should update time data of desired event and future events in group', function(done) {
-			console.log(repeatedEvent);
-			var updatedRepeatedEvent = ._clone(event);
-		});
+		it('should update time data of desired event and future events in group'
+			//function(done) {}
+		);
 
 	});
 });
