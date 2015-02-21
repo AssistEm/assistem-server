@@ -1,4 +1,5 @@
 var User = require('./user.model');
+var Community = require('../community/community.model');
 var passport = require('passport');
 var config = require('../../config/environment');
 var auth = require('../../auth/auth.service');
@@ -49,21 +50,88 @@ exports.index = function(req, res) {
 /*
  * Create a new user
  */
-exports.create = function(req, res) {
-	var user = _.merge(new User(), req.body);
+exports.create = function(req, res, next) {
+	var b = req.body;
+	var userData = b.user;
+	var communityData = b.community;
 
-	// TODO Add w/e else properties that the server assumes
-	// of a new user, i.e. independent of user input
+	// check the type of the new user
+	if (userData.type.toLowerCase() === 'caretaker') { // caretaker
+		var isEmail = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/.test(communityData.query);
+		var query = (isEmail ?
+			{'login_info.email': communityData.query} : {name: communityData.query});
+		
+		// quer: emai, search for patient -> community
+		if (isEmail) {
+			User.findOne(query, function(err, patient) {
+				if (err) {
+					next(err);
+				}
 
-	user.save(function(err, user) {
-		if (err) {
-			return validationError(res, err);
+				if (!patient) {
+					res.json({ msg: "patient with specified email not found" });
+				}
+
+				var assocCommunity = patient.patient_info.community_id;
+
+				Community.findOne({_id: assocCommunity}, function(err, community) {
+					if (err) {
+						next(err);
+					}
+
+					if (!community) {
+						res.json({ msg: "fatal error in search"});
+					}
+
+					res.locals.community = community;
+
+					var newCaretaker = _.merge(new User(), userData);
+
+					res.locals.user = newCaretaker;
+					var payload = {
+						token: auth.createToken({_id: newCaretaker._id}),
+					};
+					
+					res.locals.payload = payload;
+					next();
+				});
+			});
 		}
+		// query: name, search for community by name
+		else {
+			Community.findOne(query, function(err, community) {
+				if (err) {
+					next(err);
+				}
 
-		var token = auth.createToken({_id: user._id});
+				console.log(community);
+				if (!community) {
+					res.json({ msg: "no community with that name found" });
+				}
 
-		res.json({token: token, user: user});
-	});
+				var newCaretaker = _.merge(new User(), userData);
+
+				res.locals.user = newCaretaker;
+				var payload = {
+					token: auth.createToken({_id: newCaretaker._id}),
+				};
+				
+				res.locals.community = community;
+				res.locals.payload = payload;
+				next();
+			});
+		}
+	} else { // patient
+		var newPatient = _.merge(new User(), userData);
+
+		res.locals.user = newPatient;
+		var payload = {
+			token: auth.createToken({_id: newPatient._id}),
+		};
+
+		res.locals.payload = payload;
+		next();
+	}
 };
 
 /*
