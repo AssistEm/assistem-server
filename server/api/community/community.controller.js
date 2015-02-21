@@ -12,8 +12,9 @@ exports.index = function(req, res) {
 };
 
 var mongoose = require('mongoose');
-// TODO: only patient can create community 
 exports.create = function(req, res, next) {
+	// TODO: only patient can create community 
+
 	var community = _.merge(new Community(), req.body);
 
 	community.patient = mongoose.Types.ObjectId();
@@ -24,6 +25,54 @@ exports.create = function(req, res, next) {
 		}
 
 		return res.status(201).json(community);
+	});
+};
+
+module.exports.createCommunity = function(req, res, next) {
+	var b = req.body;
+	var userData = b.user;
+	var communityData = b.community;
+
+	var communityToSave = null;
+	var userToSave = res.locals.user;
+
+	if (userData.type.toLowerCase() === 'caretaker') {
+		// grab associated community
+		communityToSave = res.locals.community;
+
+		communityToSave.caretakers.push(userToSave._id);
+		userToSave.caretaker_info.communities.push(communityToSave._id);
+	}
+	else {
+		// create new community
+		communityToSave = _.merge(new Community(), communityData);
+
+		communityToSave.patient = userToSave._id;
+		userToSave.patient_info.community_id = communityToSave._id;
+	}
+
+	communityToSave.save(function(err, community) {
+		if (err) {
+			next(err);
+		}
+
+		// add created/updated community to payload ## payload->ADD COMMUNITY
+		res.locals.payload.community = community;
+
+		// ## user->SAVE INSTANCE
+		userToSave.save(function(err, user) {
+			if (err) {
+				res.json(err);
+				//next(err);
+			}
+			else {
+
+				// add updated user to payload ## payload->ADD USER
+				res.locals.payload.user = user;
+
+				res.json(res.locals.payload);
+			}
+		});
 	});
 };
 
