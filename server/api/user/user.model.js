@@ -109,9 +109,9 @@ UserSchema.virtual('password').set(function(password) {
 UserSchema.pre('save', function(next) {
 	var user = this;
 
-	if(!user.isModified('login_info.password')) {
-		return next();
-	}
+	// if(!user.isModified('login_info.password')) {
+	// 	return next();
+	// }
 
 	bcrypt.genSalt(10, function(err, salt) {
 		if (err) {

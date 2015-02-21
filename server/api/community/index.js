@@ -8,6 +8,7 @@ var router = express.Router();
 
 router.get('/', controller.index);
 router.post('/',  controller.create);
+router.get('/me', auth.isAuthenticated, controller.myCommunities);
 router.post('/:id', auth.isAuthenticated, controller.update);
 router.delete('/:id', auth.isAuthenticated, controller.delete);
 
