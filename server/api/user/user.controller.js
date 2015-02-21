@@ -68,33 +68,35 @@ exports.create = function(req, res, next) {
 					next(err);
 				}
 
-				if (!patient) {
+				else if (!patient) {
 					res.json({ msg: "patient with specified email not found" });
 				}
 
-				var assocCommunity = patient.patient_info.community_id;
+				else {
+					var assocCommunity = patient.patient_info.community_id;
 
-				Community.findOne({_id: assocCommunity}, function(err, community) {
-					if (err) {
-						next(err);
-					}
+					Community.findOne({_id: assocCommunity}, function(err, community) {
+						if (err) {
+							next(err);
+						}
 
-					if (!community) {
-						res.json({ msg: "fatal error in search"});
-					}
+						if (!community) {
+							res.json({ msg: "fatal error in search"});
+						}
 
-					res.locals.community = community;
+						res.locals.community = community;
 
-					var newCaretaker = _.merge(new User(), userData);
+						var newCaretaker = _.merge(new User(), userData);
 
-					res.locals.user = newCaretaker;
-					var payload = {
-						token: auth.createToken({_id: newCaretaker._id}),
-					};
-					
-					res.locals.payload = payload;
-					next();
-				});
+						res.locals.user = newCaretaker;
+						var payload = {
+							token: auth.createToken({_id: newCaretaker._id}),
+						};
+						
+						res.locals.payload = payload;
+						next();
+					});
+				}
 			});
 		}
 		// query: name, search for community by name
@@ -104,21 +106,22 @@ exports.create = function(req, res, next) {
 					next(err);
 				}
 
-				console.log(community);
-				if (!community) {
+				else if (!community) {
 					res.json({ msg: "no community with that name found" });
 				}
 
-				var newCaretaker = _.merge(new User(), userData);
+				else {
+					var newCaretaker = _.merge(new User(), userData);
 
-				res.locals.user = newCaretaker;
-				var payload = {
-					token: auth.createToken({_id: newCaretaker._id}),
-				};
-				
-				res.locals.community = community;
-				res.locals.payload = payload;
-				next();
+					res.locals.user = newCaretaker;
+					var payload = {
+						token: auth.createToken({_id: newCaretaker._id}),
+					};
+					
+					res.locals.community = community;
+					res.locals.payload = payload;
+					next();
+				}
 			});
 		}
 	} else { // patient
