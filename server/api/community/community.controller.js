@@ -1,5 +1,15 @@
 var Community = require('./community.model');
+var mongoose = require('mongoose');
 var _ = require('lodash');
+
+function errorHandler(res, err) {
+	if (err.name === 'ValidationError') {
+		res.status(400).json(err);
+	}
+	else {
+		res.status(500).json(err);
+	}
+}
 
 /*
  * Get list of all communities
@@ -13,7 +23,6 @@ exports.index = function(req, res) {
 		res.status(200).json(communities);
 	});
 };
-
 
 /*
  * Get a community of a specific user
@@ -38,27 +47,9 @@ exports.myCommunities = function(req, res) {
 	});
 };
 
-
 /*
  * Create a community
  */
-var mongoose = require('mongoose');
-exports.create = function(req, res, next) {
-	// TODO: only patient can create community 
-
-	var community = _.merge(new Community(), req.body);
-
-	community.patient = mongoose.Types.ObjectId();
-
-	community.save(function(err, community) {
-		if (err) {
-			return next(err);
-		}
-
-		return res.status(201).json(community);
-	});
-};
-
 module.exports.createCommunity = function(req, res, next) {
 	var b = req.body;
 	var userData = b.user;
@@ -84,26 +75,43 @@ module.exports.createCommunity = function(req, res, next) {
 
 	communityToSave.save(function(err, community) {
 		if (err) {
-			next(err);
+			// nothing saved yet, abort with erro
+			errorHandler(res, err);
 		}
+		else {
+			// add created/updated community to payload ## payload->ADD COMMUNITY
+			res.locals.payload.community = community;
 
-		// add created/updated community to payload ## payload->ADD COMMUNITY
-		res.locals.payload.community = community;
+			// ## user->SAVE INSTANCE
+			userToSave.save(function(err, user) {
+				if (err) {
+					// community already saved
+					// caretaker: repair caretakers array
+					// patient: community no longer usable, delete created community
 
-		// ## user->SAVE INSTANCE
-		userToSave.save(function(err, user) {
-			if (err) {
-				res.json(err);
-				//next(err);
-			}
-			else {
+					if (userData.type.toLowerCase() === 'caretaker') {
+						// caretaker
+						var recIdx = community.caretakers.indexOf(userToSave._id);
+						community.caretakers.splice(recIdx, 1);
+						var recArr = community.caretakers;
 
-				// add updated user to payload ## payload->ADD USER
-				res.locals.payload.user = user;
+						Community.update({'_id': community._id}, {'caretakers': recArr}).exec();
+					}
+					else {
+						// patient
+						community.remove();
+					}
 
-				res.json(res.locals.payload);
-			}
-		});
+					res.status(400).json({err: err, user: userData, community: communityData});
+				}
+				else {
+					// add updated user to payload ## payload->ADD USER
+					res.locals.payload.user = user;
+
+					res.json(res.locals.payload);
+				}
+			});
+		}
 	});
 };
 
