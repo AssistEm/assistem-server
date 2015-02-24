@@ -7,7 +7,6 @@ function errorHandler(res, err, payload) {
 		res.status(422).json(err);
 	}
 	else if (err.name === 'MongoError') {
-
 		res.status(409).json(payload);
 	}
 	else {
@@ -80,7 +79,10 @@ module.exports.createCommunity = function(req, res, next) {
 	communityToSave.save(function(err, community) {
 		if (err) {
 			// nothing saved yet, abort with erro
-			errorHandler(res, err);
+			var payload = {
+				err: err, user: userData, community: communityData
+			};
+			errorHandler(res, err, payload);
 		}
 		else {
 			// add created/updated community to payload ## payload->ADD COMMUNITY
@@ -109,7 +111,7 @@ module.exports.createCommunity = function(req, res, next) {
 
 					var payload = {
 						err: err, user: userData, community: communityData
-					}
+					};
 					errorHandler(res, err, payload);
 
 

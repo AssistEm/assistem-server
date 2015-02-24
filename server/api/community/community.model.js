@@ -7,7 +7,8 @@ var Schema = mongoose.Schema;
 var communitySchema = new Schema({
 	name: {
 		type: String,
-		required: true
+		required: true,
+		unique: true
 	},
 	patient: {
 		type: Schema.Types.ObjectId,
