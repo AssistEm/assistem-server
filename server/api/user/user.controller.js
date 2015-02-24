@@ -27,10 +27,26 @@ exports.login = function(req, res, next) {
 			return res.status(401).json(info);
 		}
 
-		var token = auth.createToken({_id: user._id});
-		user.login_info.password = undefined;
+		var community_ids = [];
 
-		res.json({token: token, user: user});
+		if (user.type === 'caretaker') {
+			community_ids = community_ids.concat(user.caretaker_info.communities);
+		}
+		else {
+			community_ids = community_ids.concat(user.patient_info.community_id);
+		}
+
+		Community.find({_id: {$in: community_ids}}, function(err, community) {
+			if (err) {
+				next(err);
+			}
+			else {
+				var token = auth.createToken({_id: user._id});
+				user.login_info.password = undefined;
+
+				res.json({token: token, user: user, community: community});
+			}
+		});
 	})(req, res, next);
 };
 
