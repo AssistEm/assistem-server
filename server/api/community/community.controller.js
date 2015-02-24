@@ -91,6 +91,7 @@ module.exports.createCommunity = function(req, res, next) {
 
 					if (userData.type.toLowerCase() === 'caretaker') {
 						// caretaker
+						// TODO: use lodash.without(), mongodb -> update with $pull operator
 						var recIdx = community.caretakers.indexOf(userToSave._id);
 						community.caretakers.splice(recIdx, 1);
 						var recArr = community.caretakers;

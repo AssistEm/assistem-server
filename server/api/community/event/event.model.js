@@ -45,4 +45,12 @@ eventSchema.virtual('weeks_to_repeat').set(function(wr) {
 	this.time.weeks_to_repeat = wr;
 });
 
+eventSchema.virtual('start_time').get(function() {
+	return this.time.start;
+});
+
+eventSchema.virtual('end_time').get(function() {
+	return this.time.end;
+});
+
 module.exports = mongoose.model('Event', eventSchema);

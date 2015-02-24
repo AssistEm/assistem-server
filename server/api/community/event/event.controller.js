@@ -147,26 +147,18 @@ exports.create = function(req, res) {
 	}
 };
 
+// update single event or event from group
+// single: just update single event
+// group: either update all in group, selected event and newer, only selected
+// event (in which case we remove from group)
 exports.update = function(req, res) {
-	// update single event, single event from repeated, 
-	//
-	// update single event or event from group
-	// single: just update single event
-	// group: either update all in group, selected event and newer, only selected
-	// event (in which case we remove from group)
-
-	var b = req.body;
-
-	if ('volunteer' in b) {
-		res.send({msg: "added user to volunteer"});
-	}
-
-	// b should have event doing update on
+	var b = _.clone(req.body, true);
 
 	Event.findOne({_id: req.params.id}, function(err, event) {
 		if (err) {
 			next(err);
-		} else if (!event) {
+		}
+		else if (!event) {
 			res.status(404).json(err);
 		}
 
@@ -177,8 +169,27 @@ exports.update = function(req, res) {
 				'time.start': { $gte: moment(event.time.start).toDate() }
 			};
 
-			var updates = {}; //_.clone({}, b);
-			console.log(updates);
+			var newTimes = [];
+
+			if (b.start_time || b.end_time) {
+
+				if (b.start_time) {
+					var oldStart = moment(event.time.start);
+					var newStart = moment(b.start_time);
+
+					var startDur = moment.duration(newStart.diff(oldStart));
+
+					newTimes.push({type: 'start_time', dur: startDur, path: 'start'});
+				}
+				if (b.end_time) {
+					var oldEnd = moment(event.time.end);
+					var newEnd = moment(b.end_time);
+
+					var endDur = moment.duration(newEnd.diff(oldEnd));
+
+					newTimes.push({type: 'end_time', dur: endDur, path: 'end'});
+				}
+			}
 
 			var updatedEvents = [];
 			Event.find(conditions, function(err, events) {
@@ -186,42 +197,48 @@ exports.update = function(req, res) {
 					next(err);
 				}
 
-				for (var i = 0; i < events.length; i++) {
-					updatedEvents.push(Event.update({_id: events[i]._id}, updates).exec());
+				if (b.weeks_to_repeat) {
+					b['time.weeks_to_repeat'] = _.clone(b.weeks_to_repeat, true);
+					delete b.weeks_to_repeat;
 				}
 
+				if (b.days_of_week) {
+					b['time.days_of_week'] = _.clone(b.days_of_week, true);
+					delete b.days_of_week;
+				}
+
+				for (var i = 0; i < events.length; i++) {
+					var curEvent = events[i];
+					var curData = _.clone(b, true);
+
+					for (var j = 0; j < newTimes.length; j++) {
+						var newTime = newTimes[j];
+						var curTime = moment(curEvent.get(newTime.type));
+
+						delete curData[newTime.type];
+
+						var updatedTime = curTime.clone();
+						updatedTime
+							.add(newTime.dur.hours(), 'h')
+							.add(newTime.dur.minutes(), 'm');
+
+						curData['time.' + newTime.path] = updatedTime.toDate();
+					}
+					console.log(curData);
+
+					var updatePromise = Event.update({_id: curEvent._id}, {$set: curData}).exec();
+					updatedEvents.push(updatePromise);
+				}
 				Promise.all(updatedEvents).then(function() {
-					res.send(events);
+					res.send(event);
 				});
 			});
-
-			/*
-			var conditions = {
-				group_id: event.group_id,
-				'time.start': { $gte: moment(event.time.start).toDate() }
-			};
-
-			var update = {
-			};
-
-			Event.update({
-				group_id: event.group_id,
-				'time.start': { $gte: moment(event.time.start).toDate() }
-				},
-				{ thingsToUpdate },
-				{ multi: true }
-
-			Event.find({group_id: event.group_id})
-				.where('time.start').gte().lte()
-				.exec(function(err, events) {
-				});
-			*/
-
-		} else {
+		}
+		else {
 			// single event
-			for (var property in b) {
-				if (b.hasOwnProperty(property)) {
-					event[property] = b[property];
+			for (var singleP in b) {
+				if (b.hasOwnProperty(singleP)) {
+					event[singleP] = b[singleP];
 				}
 			}
 
