@@ -5,55 +5,82 @@ var _ = require('lodash');
 var Promise = require('bluebird');
 
 exports.index = function(req, res) {
-	var date = new Date();
-	var month, day;
-	var weekOffset = 0;
+	// var date = new Date();
+	// var month, day;
+	// var weekOffset = 0;
+	// var currentYear = date.getFullYear();
+	var current_month = moment().get('month');
+	var focused_month;
 
 	if (req.query) {
-		if (req.query.month && req.query.day) {
-			month = req.query.month - 1;
-			day = req.query.day;
-
-			date.setMonth(month, day); // 
+		if(req.query.month) {
+			month = req.query.month;
+			offset = current_month + Number(month);
+			focused_month = moment().set('month', current_month + offset - 1);
 		}
 
-		if (req.query.week) {
-			weekOffset = 7 * req.query.week;
-		}
+		// if (req.query.month && req.query.day) {
+		// 	month = req.query.month - 1;
+		// 	day = req.query.day;
+
+		// 	date.setMonth(month, day); // 
+		// }
+
+		// if (req.query.week) {
+		// 	weekOffset = 7 * req.query.week;
+		// }
 	}
 
-	if (!month || !day) {
-		month = date.getMonth();
-		day = date.getDate();
-	}
+	var first_day = moment(focused_month).startOf('month').toDate();
+	var last_day = moment(focused_month).endOf('month').toDate();
 
-	var dayOffset = date.getDay();
-	var sunday = new Date();
+	console.log("firstday = " + first_day);
+	console.log("last_day = " + last_day);
 
-	var currentSunday = day - dayOffset;
-	var newSunday = currentSunday + weekOffset;
-
-	sunday.setMonth(month, newSunday);
-
-	var saturday = new Date();
-	saturday.setMonth(sunday.getMonth(), sunday.getDate() + 6);
-
-	sunday.setMonth(4, 2);
-	sunday.setFullYear(2015);
-	sunday.setHours(0, 0);
-
-	saturday.setHours(23, 59);
-
-	console.log(sunday);
-	console.log(saturday);
+	console.log(first_day);
+	console.log(last_day);
 
 	Event.find({community_id: req.community._id})
-		.where('time.start').gte(sunday).lte(saturday)
-		.where('time.end').gte(sunday).lte(saturday)
-		.exec(function(err, events) {
-			console.log(events);
-			res.send(events);
-		});
+			.where('time.start').gte(first_day).lte(last_day)
+			.where('time.end').gte(first_day).lte(last_day)
+			.exec(function(err, events) {
+				console.log(events);
+				res.send(events);
+			});
+
+
+	// if (!month || !day) {
+	// 	month = date.getMonth();
+	// 	day = date.getDate();
+	// }
+
+	// var dayOffset = date.getDay();
+	// var sunday = new Date();
+
+	// var currentSunday = day - dayOffset;
+	// var newSunday = currentSunday + weekOffset;
+
+	// sunday.setMonth(month, newSunday);
+
+	// var saturday = new Date();
+	// saturday.setMonth(sunday.getMonth(), sunday.getDate() + 6);
+
+	// sunday.setMonth(4, 2);
+	// sunday.setFullYear(2015);
+	// sunday.setHours(0, 0);
+
+	// saturday.setHours(23, 59);
+
+	// console.log(sunday);
+	// console.log(saturday);
+
+	// Event.find({community_id: req.community._id})
+	// 	.where('time.start').gte(sunday).lte(saturday)
+	// 	.where('time.end').gte(sunday).lte(saturday)
+	// 	.exec(function(err, events) {
+	// 		console.log(events);
+	// 		res.send(events);
+	// 	});
 };
 
 exports.create = function(req, res) {
@@ -254,4 +281,22 @@ exports.update = function(req, res) {
 };
 
 exports.delete = function(req, res) {
+	// var delete_repeating = _.merge({}, req.body);
+	// event_id = req.event._id;
+
+
+	// console.log(event_id);
+
+	// //If we are deleting a repeating event
+	// if(delete_repeating){
+
+	// }
+	// //If we are deleting a single event
+	// else{
+
+	// }
+
+	// res.send(200);
+
+
 };
