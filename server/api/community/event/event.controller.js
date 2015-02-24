@@ -255,3 +255,64 @@ exports.update = function(req, res) {
 
 exports.delete = function(req, res) {
 };
+
+/*
+ * Volunteer for an event
+ */
+exports.volunteer = function(req, res) {
+	var b = req.body;
+
+	if (!('volunteer' in b)) {
+		res.status(400).json({msg: "improperly formatted request, try again."});
+	}
+	else {
+		Event.findOne({_id: req.params.event_id}, function(err, requestedEvent) {
+			if (err) {
+				next(err);
+			}
+			else {
+				console.log(requestedEvent);
+				if (!requestedEvent) {
+					res.status(404).json({msg: "requested event not found"});
+				}
+				else if (b.volunteer === false) { // wanting to un-volunteer
+					if (requestedEvent.volunteer) { // requested event has a volunteer
+						if (!requestedEvent.volunteer.equals(req.user._id)) { // but you are not them
+							res.status(403).json({msg: "you can only un-volunteer yourself"});
+						}
+						else { // if you are the current volunteer, then you can un-volunteer yourself
+							requestedEvent.update({$unset: {volunteer: ""}})
+								.exec(function(err, updatedEvent) {
+									if (err) {
+										next(err);
+									}
+									else {
+										res.status(200).json({msg: "successfully un-volunteered for event"});
+									}
+								});
+						}
+					} // requested event does not have volunteer field
+					else {
+						res.status(409).json({msg: "there is no-one to un-volunteer"});
+					}
+				}
+				else { // wanting to volunteer
+					if (requestedEvent.volunteer) { // requested event already has a volunteer
+						res.status(409).json({msg: "there is already someone volunteering for the event"});
+					}
+					else { // someone hasn't volunteer for the event
+						requestedEvent.update({$set: {volunteer: req.user._id}})
+							.exec(function(err, updatedEvent) {
+								if (err) {
+									next(err);
+								}
+								else {
+									res.status(200).json({msg: "successfully volunteered for event"});
+								}
+							});
+					}
+				}
+			}
+		});
+	}
+};

@@ -11,9 +11,6 @@ router.get('/me', auth.isAuthenticated, controller.myCommunities);
 router.post('/:id', auth.isAuthenticated, controller.update);
 router.delete('/:id', auth.isAuthenticated, controller.delete);
 
-// Communities/:id/Events
-var eventsRouter = require('./event');
-
 // TODO: use app.param instead
 router.use('/:id/events', function(req, res, next) {
 	Community.findOne({_id: req.params.id}, function(err, community) {
@@ -29,6 +26,6 @@ router.use('/:id/events', function(req, res, next) {
 
 		next();
 	});
-}, eventsRouter);
+}, require('./event'));
 
 module.exports = router;
