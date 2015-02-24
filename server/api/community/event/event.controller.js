@@ -181,7 +181,7 @@ exports.create = function(req, res) {
 exports.update = function(req, res) {
 	var b = _.clone(req.body, true);
 
-	Event.findOne({_id: req.params.id}, function(err, event) {
+	Event.findOne({_id: req.params.event_id}, function(err, event) {
 		if (err) {
 			next(err);
 		}
@@ -279,24 +279,64 @@ exports.update = function(req, res) {
 		}
 	});
 };
-
+/*
+ * Deletes an event from a community or a group of events in the future
+ */
 exports.delete = function(req, res) {
-	// var delete_repeating = _.merge({}, req.body);
-	// event_id = req.event._id;
+	var delete_repeating = req.body.delete_repeating;
+
+	var event_id = req.params.event_id;
+
+	//If we are deleting a repeating event
+	if(delete_repeating){
+		var group_id;
+		Event.find({'_id' : event_id}, function(err, current_event){
+			if(err){
+				next(err);
+			}
+			if(!current_event.length)
+			{
+				res.status(404).end();
+			}
+			else{
 
 
-	// console.log(event_id);
+				//find group of current
+				group_id = current_event[0].group_id;
 
-	// //If we are deleting a repeating event
-	// if(delete_repeating){
+				//Remove the current group in the future (inlcuding today)
+				Event.remove({'group_id' : group_id, 'time.start' : {$gte : moment().startOf('day').toDate() } }, function(err, event_group){
+					if(err){
+						next(err);
+					}
+					res.status(204).end();
+				});
 
-	// }
-	// //If we are deleting a single event
-	// else{
+				//If we want to remove all the events in a group and not just the future ones
+				// Event.remove({'group_id' : group_id}, function(err, event_group){
+				// 	if(err){
+				// 		next(err);
+				// 	}
+				// 	console.log("EVENT GROUP = "+ event_group);
+				// 	res.status(204).end();
+				// });
+			}
+			
+		});
 
-	// }
+		
+	}
+	//If we are deleting a single event
+	else{
+		Event.remove({'_id' : event_id }, function(err){
+			if(err){
+				next(err);
+			}
 
-	// res.send(200);
+			res.send(204);
+		});
+		
+	}
 
 
 };
