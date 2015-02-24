@@ -6,7 +6,7 @@ var router = express.Router();
 
 router.get('/', controller.index);
 router.post('/', controller.create);
-router.post('/:id', controller.update);
-router.delete('/:id', controller.delete);
+router.post('/:event_id', controller.update);
+router.delete('/:event_id', controller.delete);
 
 module.exports = router;
