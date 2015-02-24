@@ -2,9 +2,13 @@ var Community = require('./community.model');
 var mongoose = require('mongoose');
 var _ = require('lodash');
 
-function errorHandler(res, err) {
+function errorHandler(res, err, payload) {
 	if (err.name === 'ValidationError') {
-		res.status(400).json(err);
+		res.status(422).json(err);
+	}
+	else if (err.name === 'MongoError') {
+
+		res.status(409).json(payload);
 	}
 	else {
 		res.status(500).json(err);
@@ -103,7 +107,13 @@ module.exports.createCommunity = function(req, res, next) {
 						community.remove();
 					}
 
-					res.status(400).json({err: err, user: userData, community: communityData});
+					var payload = {
+						err: err, user: userData, community: communityData
+					}
+					errorHandler(res, err, payload);
+
+
+					//res.status(400).json({err: err, user: userData, community: communityData});
 				}
 				else {
 					// add updated user to payload ## payload->ADD USER
