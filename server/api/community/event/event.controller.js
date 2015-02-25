@@ -43,6 +43,7 @@ exports.index = function(req, res) {
 	Event.find({community_id: req.community._id})
 			.where('time.start').gte(first_day).lte(last_day)
 			.where('time.end').gte(first_day).lte(last_day)
+			.populate('volunteer')
 			.exec(function(err, events) {
 				console.log(events);
 				res.send(events);

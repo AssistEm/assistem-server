@@ -17,7 +17,10 @@ var eventSchema = new Schema({
 		end: Date
 	},
 	location: String,
-	volunteer: Schema.Types.ObjectId,
+	volunteer: {
+		type: Schema.Types.ObjectId,
+		ref: 'User'
+	},
 	category: String,
 	priority: Number
 });
