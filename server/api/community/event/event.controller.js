@@ -284,7 +284,7 @@ exports.update = function(req, res) {
  * Deletes an event from a community or a group of events in the future
  */
 exports.delete = function(req, res) {
-	var delete_repeating = req.body.delete_repeating;
+	var delete_repeating = req.query.delete_repeating;
 
 	var event_id = req.params.event_id;
 
