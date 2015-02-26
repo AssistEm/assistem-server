@@ -37,14 +37,12 @@ exports.myCommunities = function(req, res) {
 	var patient_community_id = user.patient_info.community_id;
 
 	if(patient_community_id){
-		community_ids.push(user._id);
+		community_ids.push(patient_community_id);
 	}
-
 	Community.find({'_id' : { $in: community_ids} }, function(err, communities){
 		if(err) {
 			return res.status(500).send(err);
 		}
-
 		res.status(200).json(communities);
 
 	});
