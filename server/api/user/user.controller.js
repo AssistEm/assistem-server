@@ -29,7 +29,7 @@ exports.login = function(req, res, next) {
 
 		var community_ids = [];
 
-		if (user.type === 'caretaker') {
+		if (user.type.toLowerCase() === 'caretaker') {
 			community_ids = community_ids.concat(user.caretaker_info.communities);
 		}
 		else {
