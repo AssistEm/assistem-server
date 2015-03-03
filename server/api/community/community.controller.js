@@ -1,4 +1,5 @@
 var Community = require('./community.model');
+var Grocery = require('./grocery/grocery.model');
 var mongoose = require('mongoose');
 var _ = require('lodash');
 
@@ -69,6 +70,8 @@ module.exports.createCommunity = function(req, res, next) {
 	else {
 		// create new community
 		communityToSave = _.merge(new Community(), communityData);
+		groceryList = new Grocery({community_id: communityToSave._id});
+		communityToSave.grocery_list_id = groceryList._id;
 
 		communityToSave.patient = userToSave._id;
 		userToSave.patient_info.community_id = communityToSave._id;
@@ -83,43 +86,57 @@ module.exports.createCommunity = function(req, res, next) {
 			errorHandler(res, err, payload);
 		}
 		else {
-			// add created/updated community to payload ## payload->ADD COMMUNITY
-			res.locals.payload.community = community;
-
-			// ## user->SAVE INSTANCE
-			userToSave.save(function(err, user) {
+			groceryList.save(function(err, savedGroceryList) {
 				if (err) {
-					// community already saved
-					// caretaker: repair caretakers array
-					// patient: community no longer usable, delete created community
-
-					if (userData.type.toLowerCase() === 'caretaker') {
-						// caretaker
-						// TODO: use lodash.without(), mongodb -> update with $pull operator
-						var recIdx = community.caretakers.indexOf(userToSave._id);
-						community.caretakers.splice(recIdx, 1);
-						var recArr = community.caretakers;
-
-						Community.update({'_id': community._id}, {'caretakers': recArr}).exec();
-					}
-					else {
-						// patient
-						community.remove();
-					}
+					// remove id from community
+					community.update({$unset: {grocery_list_id: ""}}).exec();
+					savedGroceryList.remove();
 
 					var payload = {
 						err: err, user: userData, community: communityData
 					};
 					errorHandler(res, err, payload);
-
-
-					//res.status(400).json({err: err, user: userData, community: communityData});
 				}
 				else {
-					// add updated user to payload ## payload->ADD USER
-					res.locals.payload.user = user;
+					// add created/updated community to payload ## payload->ADD COMMUNITY
+					res.locals.payload.community = community;
 
-					res.json(res.locals.payload);
+					// ## user->SAVE INSTANCE
+					userToSave.save(function(err, user) {
+						if (err) {
+							// community already saved
+							// caretaker: repair caretakers array
+							// patient: community no longer usable, delete created community
+
+							if (userData.type.toLowerCase() === 'caretaker') {
+								// caretaker
+								// TODO: use lodash.without(), mongodb -> update with $pull operator
+								var recIdx = community.caretakers.indexOf(userToSave._id);
+								community.caretakers.splice(recIdx, 1);
+								var recArr = community.caretakers;
+
+								Community.update({'_id': community._id}, {'caretakers': recArr}).exec();
+							}
+							else {
+								// patient
+								community.remove();
+							}
+
+							var payload = {
+								err: err, user: userData, community: communityData
+							};
+							errorHandler(res, err, payload);
+
+
+							//res.status(400).json({err: err, user: userData, community: communityData});
+						}
+						else {
+							// add updated user to payload ## payload->ADD USER
+							res.locals.payload.user = user;
+
+							res.json(res.locals.payload);
+						}
+					});
 				}
 			});
 		}

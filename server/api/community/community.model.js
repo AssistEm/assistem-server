@@ -18,7 +18,8 @@ var communitySchema = new Schema({
 	privacy: {
 		type: Boolean,
 		required: true
-	}
+	},
+	grocery_list_id: Schema.Types.ObjectId
 });
 
 module.exports = mongoose.model('Community', communitySchema);
