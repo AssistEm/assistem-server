@@ -11,21 +11,25 @@ router.get('/me', auth.isAuthenticated, controller.myCommunities);
 router.post('/:id', auth.isAuthenticated, controller.update);
 router.delete('/:id', auth.isAuthenticated, controller.delete);
 
-// TODO: use app.param instead
-router.use('/:id/events', function(req, res, next) {
+// TODO: factor out into community controller
+function attachCommunity(req, res, next) {
 	Community.findOne({_id: req.params.id}, function(err, community) {
 		if (err) {
 			next(err);
 		}
-
-		if (!community) {
+		else if (!community) {
 			res.json({msg: "community not found"});
 		}
-
-		req.community = community;
-
-		next();
+		else {
+			req.community = community;
+			next();
+		}
 	});
-}, require('./event'));
+}
+
+// Community sub resources
+// TODO: use app.param instead
+router.use('/:id/events', attachCommunity, require('./event'));
+router.use('/:id/groceries', attachCommunity, require('./grocery'));
 
 module.exports = router;
