@@ -34,19 +34,18 @@ exports.index = function(req, res) {
 	var first_day = moment(focused_month).startOf('month').toDate();
 	var last_day = moment(focused_month).endOf('month').toDate();
 
-	console.log("firstday = " + first_day);
-	console.log("last_day = " + last_day);
-
-	console.log(first_day);
-	console.log(last_day);
-
 	Event.find({community_id: req.community._id})
 			.where('time.start').gte(first_day).lte(last_day)
 			.where('time.end').gte(first_day).lte(last_day)
 			.populate('volunteer')
 			.exec(function(err, events) {
-				console.log(events);
-				res.send(events);
+				if(err){
+					return next(err);
+				}
+				else{
+					console.log(events);
+					res.send(events);	
+				}	
 			});
 
 
@@ -286,11 +285,12 @@ exports.update = function(req, res) {
  */
 exports.delete = function(req, res) {
 	var delete_repeating = req.query.delete_repeating;
+	console.log("DELETE REPEATING = " + delete_repeating);
 
 	var event_id = req.params.event_id;
 
 	//If we are deleting a repeating event
-	if(delete_repeating){
+	if(delete_repeating === "true"){
 		var group_id;
 		Event.find({'_id' : event_id}, function(err, current_event){
 			if(err){
@@ -334,7 +334,6 @@ exports.delete = function(req, res) {
 			if(err){
 				next(err);
 			}
-
 			res.send(204);
 		});
 		
