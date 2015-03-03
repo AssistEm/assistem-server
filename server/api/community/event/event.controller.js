@@ -50,6 +50,7 @@ exports.index = function(req, res) {
 			});
 
 
+
 	// if (!month || !day) {
 	// 	month = date.getMonth();
 	// 	day = date.getDate();
