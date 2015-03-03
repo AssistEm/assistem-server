@@ -5,7 +5,29 @@ var Grocery = require('./grocery.model');
  * and returns the grocery list items that match
  */
 exports.index = function(req, res) {
-	res.send({msg: 'foo'});
+	var b = req.body;
+	var grocery_id = req.community.grocery_list_id;
+
+	Grocery.findOne({'_id' : grocery_id}, function(err, grocery_list){
+		if(err){
+			console.log("ERR = " + err);
+			next(err);
+		}
+		else {
+			var result = [];
+			var item_list = grocery_list.item_list;
+
+			for (var i = 0; i < item_list.length; i++) {
+				var item = item_list[i];
+
+				if (!item.hasOwnProperty('volunteer') || req.user.type === 'patient') {
+					result.push(item);
+				}
+			}
+
+			res.json(result);
+		}
+	});
 };
 
 exports.addItem = function(req, res) {
