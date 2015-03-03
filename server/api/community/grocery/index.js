@@ -9,7 +9,7 @@ var router = express.Router();
 router.use(auth.isAuthenticated);
 
 router.get('/', controller.index);
-router.post('/', controller.createItem);
+router.post('/', controller.addItem);
 router.post('/:item_id', controller.updateItem);
 router.put('/:item_id', controller.volunteerItem);
 router.delete('/item_id', controller.deleteItem);

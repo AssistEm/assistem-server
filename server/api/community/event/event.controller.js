@@ -285,7 +285,6 @@ exports.update = function(req, res) {
  */
 exports.delete = function(req, res) {
 	var delete_repeating = req.query.delete_repeating;
-	console.log("DELETE REPEATING = " + delete_repeating);
 
 	var event_id = req.params.event_id;
 
