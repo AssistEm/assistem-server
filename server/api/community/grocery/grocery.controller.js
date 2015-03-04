@@ -1,5 +1,5 @@
 var Grocery = require('./grocery.model');
-var _ = require('lodash');
+var moment = require('moment');
 
 exports.attachGroceryList = function(req, res, next) {
 	var grocery_id = req.community.grocery_list_id;
@@ -92,7 +92,60 @@ exports.updateItem = function(req, res) {
 
 };
 
+/*
+ * Function that volunteers or un-volunteers a user for an item in a grocery
+ * list.
+ */
 exports.volunteerItem = function(req, res) {
+	var b = req.body;
+	var item = req.grocery_list.item_list.id(req.params.item_id);
+
+	if (!item) {
+		res.status(404).json({msg: "cannot find item with id '" + req.params.item_id + "'"});
+	}
+
+	if (b.volunteer) { // attempting to volunteer
+		if (item.volunteer && item.volunteer.volunteer_id) { // already a volunteer
+			// only patients should get these messages because
+			// caretakers will get list of un-volunteered for items
+			if (!item.volunteer.volunteer_id.equals(req.user._id)) { // req.user !== item.volunteer
+				res.status(403).json({msg: "someone already volunteering for item"});
+			}
+			else {
+				res.status(403).json({msg: "you are already volunteering for this item"});
+			}
+		}
+		else { // no volunteer present
+			item.volunteer.volunteer_id = req.user._id;
+			item.volunteer.delivery_time = moment(b.delivery_time).toDate();
+			saveGroceryList();
+		}
+	}
+	else { // attemtping to un-volunteer
+		if (item.volunteer && item.volunteer.volunteer_id) { // already a volunteer
+			if (!item.volunteer.volunteer_id.equals(req.user._id)) { // req.user !== item.volunteer
+				res.status(403).json({msg: "you can only un-volunteer yourself"});
+			}
+			else {
+				item.volunteer = undefined;
+				saveGroceryList();
+			}
+		}
+		else { // no volunteer present
+			res.status(400).json({msg: "no volunteer present to un-volunteer"});
+		}
+	}
+
+	function saveGroceryList() {
+		req.grocery_list.save(function(err, savedGroceryList) {
+			if (err) {
+				next(err);
+			}
+			else {
+				res.status(200).end();
+			}
+		});
+	}
 };
 
 /*
