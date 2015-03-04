@@ -58,7 +58,7 @@ module.exports.createCommunity = function(req, res, next) {
 	var communityData = b.community;
 
 	var communityToSave = null;
-	var groceryList = null;
+	var groceryListToSave = null;
 	var userToSave = res.locals.user;
 
 	if (userData.type.toLowerCase() === 'caretaker') {
@@ -71,77 +71,82 @@ module.exports.createCommunity = function(req, res, next) {
 	else {
 		// create new community
 		communityToSave = _.merge(new Community(), communityData);
-		groceryList = new Grocery({community_id: communityToSave._id});
-		communityToSave.grocery_list_id = groceryList._id;
+
+		// create a new grocery list
+		groceryListToSave = new Grocery({community_id: communityToSave._id});
+		communityToSave.grocery_list_id = groceryListToSave._id;
 
 		communityToSave.patient = userToSave._id;
 		userToSave.patient_info.community_id = communityToSave._id;
 	}
 
-	communityToSave.save(function(err, community) {
+	communityToSave.save(function(err, savedCommunity) {
 		if (err) {
-			// nothing saved yet, abort with erro
+			// nothing saved yet, abort with error
 			var payload = {
 				err: err, user: userData, community: communityData
 			};
 			errorHandler(res, err, payload);
 		}
 		else {
-			groceryList.save(function(err, savedGroceryList) {
-				if (err) {
-					// remove id from community
-					community.update({$unset: {grocery_list_id: ""}}).exec();
-					savedGroceryList.remove();
+			// add created/updated community to payload ## payload->ADD COMMUNITY
+			res.locals.payload.community = savedCommunity;
 
-					var payload = {
-						err: err, user: userData, community: communityData
-					};
-					errorHandler(res, err, payload);
-				}
-				else {
-					// add created/updated community to payload ## payload->ADD COMMUNITY
-					res.locals.payload.community = community;
-
-					// ## user->SAVE INSTANCE
-					userToSave.save(function(err, user) {
-						if (err) {
-							// community already saved
-							// caretaker: repair caretakers array
-							// patient: community no longer usable, delete created community
-
-							if (userData.type.toLowerCase() === 'caretaker') {
-								// caretaker
-								// TODO: use lodash.without(), mongodb -> update with $pull operator
-								var recIdx = community.caretakers.indexOf(userToSave._id);
-								community.caretakers.splice(recIdx, 1);
-								var recArr = community.caretakers;
-
-								Community.update({'_id': community._id}, {'caretakers': recArr}).exec();
-							}
-							else {
-								// patient
-								community.remove();
-							}
-
-							var payload = {
-								err: err, user: userData, community: communityData
-							};
-							errorHandler(res, err, payload);
-
-
-							//res.status(400).json({err: err, user: userData, community: communityData});
-						}
-						else {
-							// add updated user to payload ## payload->ADD USER
-							res.locals.payload.user = user;
-
-							res.json(res.locals.payload);
-						}
-					});
-				}
-			});
+			if (userData.type.toLowerCase() === 'patient') {
+				saveGroceryList(savedCommunity);
+			}
+			else {
+				saveUser(savedCommunity, null);
+			}
 		}
 	});
+
+	function saveGroceryList(community) {
+		groceryListToSave.save(function(err, savedGroceryList) {
+			if (err) {
+				// community no longer usable, delete created community
+				community.remove();
+
+				var payload = {
+					err: err, user: userData, community: communityData
+				};
+				errorHandler(res, err, payload);
+			}
+			else {  // SAVED NEW GROCERY LIST
+				saveUser(community, savedGroceryList);
+			}
+		});
+	}
+
+	function saveUser(community, groceryList) {
+		userToSave.save(function(err, user) {
+			if (err) {
+				// community already saved, therefore
+				// caretaker: repair caretakers array
+				// patient: community/groceryList no longer usable, delete both
+
+				if (userData.type.toLowerCase() === 'caretaker') {
+					// caretaker
+					community.update({$pull: {'caretakers': userToSave._id}}).exec();
+				}
+				else {
+					// patient
+					community.remove();
+					groceryList.remove();
+				}
+
+				var payload = {
+					err: err, user: userData, community: communityData
+				};
+				errorHandler(res, err, payload);
+			}
+			else {
+				// add updated user to payload ## payload->ADD USER
+				res.locals.payload.user = user;
+				res.json(res.locals.payload);
+			}
+		});
+	}
 };
 
 /*
