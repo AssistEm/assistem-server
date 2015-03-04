@@ -1,5 +1,23 @@
 var Grocery = require('./grocery.model');
 
+exports.attachGroceryList = function(req, res, next) {
+	var grocery_id = req.community.grocery_list_id;
+
+	Grocery.findOne({'_id' : grocery_id}, function(err, grocery_list){
+		if(err){
+			console.log("ERR = " + err);
+
+			res
+			.status(500)
+			.json({msg: "fatal error, community does not have attached grocery list"});
+		}
+		else {
+			req.grocery_list = grocery_list;
+			next();
+		}
+	});
+};
+
 /*
  * Function that takes the title(optional) or location(optional)
  * and returns the grocery list items that match
@@ -61,7 +79,6 @@ exports.updateItem = function(req, res) {
 };
 
 exports.volunteerItem = function(req, res) {
-	res.send({msg: 'foo'});
 };
 
 exports.deleteItem = function(req, res) {

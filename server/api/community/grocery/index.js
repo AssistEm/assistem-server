@@ -6,7 +6,9 @@ var auth = require('../../../auth/auth.service');
 // Grocery
 var router = express.Router();
 
+// middleware
 router.use(auth.isAuthenticated);
+router.use(controller.attachGroceryList);
 
 router.get('/', controller.index);
 router.post('/', controller.addItem);
