@@ -25,28 +25,18 @@ exports.attachGroceryList = function(req, res, next) {
  */
 exports.index = function(req, res) {
 	var b = req.body;
-	var grocery_id = req.community.grocery_list_id;
+	var result = [];
+	var item_list = req.grocery_list.item_list;
 
-	Grocery.findOne({'_id' : grocery_id}, function(err, grocery_list){
-		if(err){
-			console.log("ERR = " + err);
-			next(err);
+	for (var i = 0; i < item_list.length; i++) {
+		var item = item_list[i];
+
+		if (!item.hasOwnProperty('volunteer') || req.user.type === 'patient') {
+			result.push(item);
 		}
-		else {
-			var result = [];
-			var item_list = grocery_list.item_list;
+	}
 
-			for (var i = 0; i < item_list.length; i++) {
-				var item = item_list[i];
-
-				if (!item.hasOwnProperty('volunteer') || req.user.type === 'patient') {
-					result.push(item);
-				}
-			}
-
-			res.json(result);
-		}
-	});
+	res.json(result);
 };
 
 /*
@@ -57,30 +47,49 @@ exports.addItem = function(req, res) {
 	// JSON: {title:String, description:String, location:String, quantity:String, urgency:Date(PASS AS STRING)}
 	var b = req.body;
 	var grocery_id = req.community.grocery_list_id;
-	var grocery_list = undefined;
+	var grocery_list = req.grocery_list;
 
-	Grocery.findOne({'_id' : grocery_id}, function(err, grocery_list){
+	grocery_list.item_list.push(b);
+	grocery_list.save(function(err){
 		if(err){
-			console.log("ERR = " + err);
 			next(err);
 		}
 		else{
-			console.log("GROCERY = " + grocery_list); 
-			grocery_list.item_list.push(b);
-			grocery_list.save(function(err){
-				if(err){
-					next(err);
-				}
-				else{
-					res.send(grocery_list);
-				}
-			});
+			res.send(grocery_list);
 		}
 	});
 };
 
+
+/*
+ * Function that takes all the grocery item attributes as optional,
+ * updates the grocery_list item elements, and returns the updated list (nothing).
+ */
 exports.updateItem = function(req, res) {
-	res.send({msg: 'foo'});
+	var b = req.body;
+	var grocery_list = req.grocery_list;
+	var grocery_id = grocery_list._id;
+	
+	var item_list = grocery_list.item_list;
+	var item_id = req.params.item_id;
+	
+	var item = grocery_list.item_list.id(item_id);
+	console.log(b);
+	for(var eachNewAttr in b)
+	{
+		item[eachNewAttr] = b[eachNewAttr];
+	}
+	console.log(item);
+
+	grocery_list.save(function(err, saved){
+		if(err){
+			res.send(err);
+		}
+		else{
+			res.send(grocery_list);
+		}
+	});
+
 };
 
 exports.volunteerItem = function(req, res) {
@@ -92,37 +101,31 @@ exports.volunteerItem = function(req, res) {
  */
 exports.deleteItem = function(req, res) {
 	grocery_item_id = req.params.item_id;
-	var grocery_id = req.community.grocery_list_id;
+	var grocery_list = req.grocery_list;
 	var item_list = undefined;
 
-	Grocery.findOne({'_id' : grocery_id}, function(err, grocery){
-		if(err){
-			next(err);
+
+	var removed = false;
+	item_list = grocery_list.item_list;
+	for (var i = item_list.length - 1; i >= 0; i--){
+		if(item_list[i]._id == grocery_item_id){
+			item_list.splice(i,1);
+			removed = true;
 		}
-		else{
-			var removed = false;
-			item_list = grocery.item_list;
-			for (var i = item_list.length - 1; i >= 0; i--){
-				if(item_list[i]._id == grocery_item_id){
-					item_list.splice(i,1);
-					removed = true;
-				}
-			}
-			if(!removed){
-				res.send(404);
+	}
+	if(!removed){
+		res.send(404);
+	}
+	else{
+		grocery_list.save(function(err){
+			if(err){
+				next(err);
 			}
 			else{
-				grocery.save(function(err){
-					if(err){
-						next(err);
-					}
-					else{
-						res.send(204);
-					}
-				});
+				res.send(204);
 			}
-		}
-	});
+		});
+	}
 };
 
 exports.autocompleteItem = function(req, res) {
