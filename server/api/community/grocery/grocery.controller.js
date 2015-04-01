@@ -1,5 +1,6 @@
 var Grocery = require('./grocery.model');
 var moment = require('moment');
+var fuzzy = require('fuzzy');
 
 exports.attachGroceryList = function(req, res, next) {
 	var grocery_id = req.community.grocery_list_id;
@@ -28,15 +29,38 @@ exports.index = function(req, res) {
 	var result = [];
 	var item_list = req.grocery_list.item_list;
 
+	console.log("here is the list");
+	console.log(item_list);
+
 	for (var i = 0; i < item_list.length; i++) {
 		var item = item_list[i];
 
 		if (!item.hasOwnProperty('volunteer') || req.user.type === 'patient') {
-			result.push(item);
+			result.push(item._id);
 		}
 	}
 
-	res.json(result);
+	console.log("here is the result");
+	console.log(result);
+
+	res.json(item_list);
+
+	/*List
+		.find({'_id': {$in: result}})
+		.populate('volunteer.volunteer_id')
+		.exec(function(err, items) {
+			if (err) {
+				console.log('error');
+				console.log(err);
+			}
+			else {
+				console.log('good');
+				console.log(items);
+			}
+
+			res.json(items);
+		});*/
+
 };
 
 /*
@@ -181,6 +205,23 @@ exports.deleteItem = function(req, res) {
 	}
 };
 
+/*
+ * Function that takes the URL PARAM search and does a fuzzy search on the
+ * communitie's item_list for an item with its title property matching the
+ * search string. Returns all the items in the item_list if no search URL
+ * PARAM is specified
+ */
 exports.autocompleteItem = function(req, res) {
-	res.send({msg: 'foo'});
+	var search = req.query.search || '';
+	var item_list = req.grocery_list.item_list;
+
+	var options = {
+		extract: function(el) { return el.title; }
+	};
+
+	var results = (fuzzy
+		.filter(search, item_list, options)
+		.map(function(el) { return el.string; }));
+
+	res.send(results);
 };
