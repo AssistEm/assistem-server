@@ -207,7 +207,7 @@ exports.deleteItem = function(req, res) {
 
 /*
  * Function that takes the URL PARAM search and does a fuzzy search on the
- * communitie's item_list for an item with its title property matching the
+ * community's item_list for an item with its title property matching the
  * search string. Returns all the items in the item_list if no search URL
  * PARAM is specified
  */

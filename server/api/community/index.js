@@ -31,5 +31,6 @@ function attachCommunity(req, res, next) {
 // TODO: use app.param instead
 router.use('/:id/events', attachCommunity, require('./event'));
 router.use('/:id/groceries', attachCommunity, require('./grocery'));
+router.use('/:id/pings', attachCommunity, require('./ping'));
 
 module.exports = router;
