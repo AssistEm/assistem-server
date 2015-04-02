@@ -64,6 +64,7 @@ var UserSchema = new Schema({
 			validate: passwordValidator
 		},
 		facebook_token: String,
+		endpointArn: String
 	},
 
 	patient_info: {
