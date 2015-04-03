@@ -5,19 +5,22 @@ var fuzzy = require('fuzzy');
 exports.attachGroceryList = function(req, res, next) {
 	var grocery_id = req.community.grocery_list_id;
 
-	Grocery.findOne({'_id' : grocery_id}, function(err, grocery_list){
-		if(err){
-			console.log("ERR = " + err);
+	Grocery
+		.findOne({'_id' : grocery_id})
+		.populate('item_list.volunteer.volunteer_id', '-login_info.password')
+		.exec(function(err, grocery_list) {
+			if(err){
+				console.log("ERR = " + err);
 
-			res
-			.status(500)
-			.json({msg: "fatal error, community does not have attached grocery list"});
-		}
-		else {
-			req.grocery_list = grocery_list;
-			next();
-		}
-	});
+				res
+				.status(500)
+				.json({msg: "fatal error, community does not have attached grocery list"});
+			}
+			else {
+				req.grocery_list = grocery_list;
+				next();
+			}
+		});
 };
 
 /*
@@ -31,6 +34,8 @@ exports.index = function(req, res) {
 
 	console.log("here is the list");
 	console.log(item_list);
+
+	console.log(req.grocery_list);
 
 	for (var i = 0; i < item_list.length; i++) {
 		var item = item_list[i];
