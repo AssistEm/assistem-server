@@ -64,6 +64,7 @@ var UserSchema = new Schema({
 			validate: passwordValidator
 		},
 		facebook_token: String,
+		endpoint_arn: String
 	},
 
 	patient_info: {
@@ -76,11 +77,11 @@ var UserSchema = new Schema({
 		communities: [Schema.Types.ObjectId],
 		availability: [{
 			start: {
-				day_of_week: String,
+				day_of_week: Number,
 				time: Date
 			},
 			end:{
-				day_of_week: String,
+				day_of_week: Number,
 				time: Date
 			}
 		}],
