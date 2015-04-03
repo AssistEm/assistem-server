@@ -233,7 +233,7 @@ exports.changeSettings = function(req, res, next) {
 			return res.status(409).send(err);
 		}
 
-		res.sendStatus(200);
+		res.status(200).json({});
 	});
 };
 

@@ -1,6 +1,6 @@
 var SNS = require('sns-mobile');
 var moment = require('moment');
-//var secrets = require('./secrets');
+var secrets = require('./secrets');
 
 var Promise = require('bluebird');
 
@@ -12,7 +12,7 @@ var Ping = require('./ping.model');
 Promise.promisifyAll(Ping);
 Promise.promisifyAll(Ping.prototype);
 
-var androidApp = {};
+/*var androidApp = {};
 
 androidApp.sendMessage = function(arn, data, cb) {
 	setTimeout(function() {
@@ -22,34 +22,34 @@ androidApp.sendMessage = function(arn, data, cb) {
 		console.log('\nWith data payload: ' + JSON.stringify(data));
 		cb(null, 'message from function mock');
 	}, 1000);
-};
+};*/
 
-/*var androidApp = new SNS({
+var androidApp = new SNS({
   platform: SNS.SUPPORTED_PLATFORMS.ANDROID,
   region: 'us-west-2',
   apiVersion: '2010-03-31',
   accessKeyId: secrets.SNS_KEY_ID,
   secretAccessKey: secrets.SNS_ACCESS_KEY,
   platformApplicationArn: secrets.SNS_ANDROID_ARN
-});*/
+});
 
 
 // Handle user added events
-/*androidApp.on('userAdded', function(endpointArn, deviceId) {
+androidApp.on('userAdded', function(endpointArn, deviceId) {
 	console.log(
 		'Successfully added device with deviceId: ' + deviceId +
 		'\nEndpoint for user is: ' + endpointArn
 	);
-});*/
+});
 
 
 // Handle single/multiple messages fail in a broadcast
-/*androidApp.on('sendFailed', function(endpointArn, err) {
+androidApp.on('sendFailed', function(endpointArn, err) {
 	console.log(
 		'Failed to send message for endpoint: ' + endpointArn +
 		'\nError returned: ' + err
 	);
-});*/
+});
 
 
 //Registers a mobile client (android)
