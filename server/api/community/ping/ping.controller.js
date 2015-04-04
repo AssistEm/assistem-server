@@ -34,6 +34,9 @@ androidApp.sendMessage = function(arn, data, cb) {
 });*/
 
 
+Promise.promisifyAll(androidApp);
+
+
 // Handle user added events
 /*androidApp.on('userAdded', function(endpointArn, deviceId) {
 	console.log(
@@ -55,31 +58,20 @@ androidApp.sendMessage = function(arn, data, cb) {
 //Registers a mobile client (android)
 exports.register = function(req, res, next) {
 	var deviceId = req.body.deviceId;
-	console.log(deviceId);
-
 	console.log('Registering android device with id: ' + deviceId);
 
-	androidApp.addUser(deviceId, null, function(err, endpointArn) {
-		if (err) {
-			console.log(err);
-			res.status(500).json(err);
-		}
-		else {
-			req.user.update(
-				{$set: {'login_info.endpoint_arn': endpointArn}},
-				function(err, user) {
-					if (err) {
-						console.log(err);
-						res.status(500).json(err);
-					}
-					else {
-						console.log(endpointArn);
-						console.log(user);
-						res.end();
-					}
-				}
-			);
-		}
+	androidApp
+	.addUserAsync(deviceId, null)
+	.then(function(endpointArn) {
+		return req.user.updateAsync({$set: {'login_info.endpoint_arn': endpointArn}});
+	})
+	.then(function(registeredUser) {
+		console.log('Registered new user with endpoint_arn: ' + endpointArn);
+		res.status(200).json({});
+	})
+	.catch(function(err) {
+		console.log(err);
+		res.status(500).json(err);
 	});
 };
 
