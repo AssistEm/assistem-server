@@ -13,5 +13,7 @@ router.put('/me', auth.isAuthenticated, controller.changeSettings);
 router.put('/:id/password', auth.isAuthenticated, controller.changePassword);
 router.get('/:id', auth.isAuthenticated, controller.show);
 router.post('/', controller.create, communityController.createCommunity);
+router.put('/:user_id/available', auth.isAuthenticated, controller.setAvailability);
+router.get('/:user_id/available', auth.isAuthenticated, controller.getAvailability);
 
 module.exports = router;

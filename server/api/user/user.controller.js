@@ -1,8 +1,8 @@
 var User = require('./user.model');
 var Community = require('../community/community.model');
 var passport = require('passport');
-var config = require('../../config/environment');
 var auth = require('../../auth/auth.service');
+var moment = require('moment');
 var _ = require('lodash');
 
 var validationError = function(res, err) {
@@ -255,5 +255,47 @@ exports.me = function(req, res, next) {
 		}
 
 		res.json(user);
+	});
+};
+
+exports.setAvailability = function(req, res) {
+	var isAvailable = req.body.is_available;
+	var duration = req.body.duration;
+
+	User
+	.update(
+		{_id: req.user._id},
+		{$set: {'caretaker_info.global_availability': isAvailable}}
+	)
+	.exec(function(err, user) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			if (duration) {
+				var resetDate = moment().add(moment.duration(duration, 'hours'));
+				req.app.get('agenda').schedule(
+					resetDate.toDate(), 'reset availability', {userId: req.user._id}
+				);
+			}
+
+			res.status(200).json({});
+		}
+	});
+};
+
+exports.getAvailability = function(req, res) {
+	User
+	.findOne({_id: req.user._id})
+	.select('caretaker_info.global_availability')
+	.exec(function(err, user) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			res.status(200).json({is_available: user.caretaker_info.global_availability});
+		}
 	});
 };

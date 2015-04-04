@@ -75,6 +75,10 @@ var UserSchema = new Schema({
 
 	caretaker_info: {
 		communities: [Schema.Types.ObjectId],
+		global_availability: {
+			type: Boolean,
+			default: false
+		},
 		availability: [{
 			start: {
 				day_of_week: Number,
