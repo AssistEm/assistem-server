@@ -23,6 +23,8 @@ var androidApp = new SNS({
   platformApplicationArn: secrets.SNS_ANDROID_ARN
 });
 
+Promise.promisifyAll(androidApp);
+
 //Registers a mobile client (android)
 exports.register = function(req, res, next) {
 	var deviceId = req.body.deviceId;
