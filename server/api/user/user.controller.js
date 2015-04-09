@@ -11,7 +11,6 @@ var SNS = require('sns-mobile');
 
 var Promise = require('bluebird');
 
-var User = require('../../user/user.model');
 Promise.promisifyAll(User);
 Promise.promisifyAll(User.prototype);
 
