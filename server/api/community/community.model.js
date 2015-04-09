@@ -14,7 +14,10 @@ var communitySchema = new Schema({
 		type: Schema.Types.ObjectId,
 		required: true
 	},
-	caretakers: [Schema.Types.ObjectId],
+	caretakers: {
+		type: [Schema.Types.ObjectId],
+		ref: 'User'
+	},
 	privacy: {
 		type: Boolean,
 		required: true

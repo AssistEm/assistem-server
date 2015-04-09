@@ -197,3 +197,13 @@ exports.delete = function(req, res) {
 		return res.sendStatus(204);
 	});
 };
+
+exports.caretakers = function(req, res) {
+	req.community.populate('caretakers', function() {
+		console.log(arguments);
+	});
+};
+
+exports.makePrimary = function(req, res) {
+
+};

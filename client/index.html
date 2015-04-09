@@ -2,6 +2,7 @@
 <html lang="en" ng-app="caretakerApp">
 	<head>
 		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>Caretaker's App</title>
 
 		<!--remove when you have an appropriate favicon-->
@@ -15,7 +16,9 @@
 		rel="stylesheet">
 	</head>
 	<body>
-		<div ui-view></div>
+		<div class="container">
+			<div ui-view></div>
+		</div>
 
 		<script src="/bower_components/jquery/dist/jquery.min.js"></script>
 		<script src="/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
