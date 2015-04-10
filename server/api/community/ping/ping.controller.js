@@ -106,7 +106,7 @@ exports.initiatePing = function(req, res, next) {
 			res.status(500).json(err);
 		}
 		else {
-			availUsers = community.caretakers.filter(function(users) {
+			availUsers = community.caretakers.filter(function(user) {
 				// has no registered device
 				if (!user.login_info.endpoint_arn) return false;
 
