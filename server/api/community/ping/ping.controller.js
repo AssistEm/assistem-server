@@ -55,6 +55,41 @@ androidApp.on('sendFailed', function(endpointArn, err) {
 });
 
 
+// helper functions
+sendMessageAsync = Promise.promisify(androidApp.sendMessage);
+
+
+function extractVolunteer(group, volunteer) {
+	for (var i = 0; i < group.length; i++) {
+		if (group[i].app_id.equals(volunteer))
+			return group.splice(i, 1).pop();
+	}
+}
+
+
+function searchForUser(group, user_id) {
+	for (var i = 0; i < group.length; i++) {
+		if (group[i].app_id.equals(user_id))
+			return group[i];
+	}
+}
+
+/*
+ * @param group array of objects with field 'sns_id' as amazon aws sns arn
+ * @param payload JSON being sent as part of message
+ */
+function sendPings(group, payload) {
+	var msgs = [];
+
+	for (var i = 0; i < group.length; i++) {
+		msgs.push(sendMessageAsync(group[i].sns_id, payload));
+	}
+
+	return Promise.all(msgs);
+}
+
+
+
 //Registers a mobile client (android)
 exports.register = function(req, res, next) {
 	var deviceId = req.body.deviceId;
@@ -78,10 +113,11 @@ exports.register = function(req, res, next) {
 
 //Initiates a ping sent out to all the correct caretakers
 exports.initiatePing = function(req, res, next) {
+	// TODO: only patients can ping
+
 	var pingBody = req.body;
 	var dateOfPing = pingBody.time ? moment(pingBody.time) : moment();
 	var day = dateOfPing.day();
-
 
 	User.find({_id: {$in: req.community.caretakers}}).exec(function(err, users) {
 		if (err) {
@@ -90,8 +126,15 @@ exports.initiatePing = function(req, res, next) {
 		}
 		else {
 			availUsers = users.filter(function(user) {
+				// has no registered device
+				if (!user.login_info.endpoint_arn) return false;
+
+				// is currently available, regardless of availability times
+				if (user.caretaker_info.global_availability) return true;
+
 				var curAvail = user.caretaker_info.availability;
 
+				// has not set availability times
 				if (!curAvail) return false;
 
 				for (var i = 0; i < curAvail.length; i++) {
@@ -119,7 +162,6 @@ exports.initiatePing = function(req, res, next) {
 
 					var timeBool = startBool && endBool;
 					var DayBool = av.start.day_of_week >= day && av.end.day_of_week <= day;
-					//var endDayBool = av.end.day_of_week <= day;
 
 					if (timeBool && DayBool) return true;
 				}
@@ -130,78 +172,41 @@ exports.initiatePing = function(req, res, next) {
 				return {app_id: user._id, sns_id: user.login_info.endpoint_arn};
 			});
 
+			console.log('available user: ' + JSON.stringify(availUsers));
+
 			if (availUsers.length === 0) {
 				console.log('pinging regular guy');
-				res.end();
-				// ping regular guy
+				res.status(200).json({});
 			}
 			else {
-				console.log('Ping, available users: ' + JSON.stringify(availUsers));
 				var ping = new Ping({available: availUsers});
-
-				ping.save(function(err, group) {
-					if (err) {
-						console.log(err);
-						next(err);
+				var payload = {
+					data: {
+						message: pingBody,
+						group_id: group._id
 					}
-					else {
-						var payload = {
-							data: {
-								message: pingBody,
-								group_id: group._id
-							}
-						};
+				};
 
-						for (var i = 0; i < availUsers.length; i++) {
-							androidApp.sendMessage(availUsers[i].sns_id, payload, function(err, msgId) {
-								if (err) {
-									console.log(msgId);
-									console.log(err);
-								}
-								else {
-									console.log('Message successfully sent, to:');
-									console.log(msgId);
-								}
-							});
-						}
-
-						res.send(group._id);
-					}
+				ping
+				.saveAsync()
+				.then(function() {
+					console.log('pinging available');
+					return sendPings(availUsers, payload);
+				})
+				.then(function() {
+					console.log('returning ping id');
+					res.status(200).json({ping_id: ping._id});
+				})
+				.catch(function() {
+					console.log('an error has occured');
+					console.log(arguments);
+					res.status(500).json(arguments);
 				});
 			}
 		}
 	});
 };
 
-
-sendMessageAsync = Promise.promisify(androidApp.sendMessage);
-
-
-function extractVolunteer(group, volunteer) {
-	for (var i = 0; i < group.length; i++) {
-		if (group[i].app_id.equals(volunteer))
-			return group.splice(i, 1).pop();
-	}
-}
-
-
-function searchForUser(group, user_id) {
-	for (var i = 0; i < group.length; i++) {
-		if (group[i].app_id.equals(user_id))
-			return group[i];
-	}
-}
-
-
-function sendPings(group, payload) {
-	var msgs = [];
-
-	for (var i = 0; i < group.available.length; i++) {
-		msgs.push(sendMessageAsync(group.available[i].sns_id, payload));
-	}
-
-	return Promise.all(msgs);
-}
 
 
 //Responds to a ping from the correct caretaker
@@ -219,7 +224,7 @@ exports.respondPing = function(req, res, next) {
 		}
 		else if (!group) {
 			console.log('NOT FOUND, ping with id: ' + req.params.ping_id);
-			res.end();
+			res.status(404).json({});
 		}
 		else {
 			var payload = { data: { message: '' } };
@@ -228,7 +233,7 @@ exports.respondPing = function(req, res, next) {
 				payload.message = 'Someone has volunteered';
 				var volunteer = extractVolunteer(group.available, userId);
 
-				sendPings(group, payload)
+				sendPings(group.available, payload)
 				.then(function() {
 					payload.message = 'You have successfully volunteered';
 					return sendMessageAsync(volunteer.sns_id, payload);
@@ -241,7 +246,7 @@ exports.respondPing = function(req, res, next) {
 					console.log('an error occured while trying to ping group');
 				});
 
-				res.end();
+				res.status(200).json({});
 			}
 			else if (response === NO || DEFFER) {
 				console.log('picked DEFFER or NO');
@@ -265,7 +270,7 @@ exports.respondPing = function(req, res, next) {
 						})
 						.then(function() {
 							console.log('finished sending second attempt ping');
-							res.end();
+							res.status(200).json({});
 						})
 						.catch(function() {
 							console.log('Error, something whent wrong when sending second ping');

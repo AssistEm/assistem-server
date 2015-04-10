@@ -224,7 +224,7 @@ exports.makePrimary = function(req, res) {
 			res.status(500).json(err);
 		}
 		else {
-			res.status(200).json(doc);
+			res.status(200).json({});
 		}
 	});
 };
