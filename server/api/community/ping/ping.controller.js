@@ -1,7 +1,6 @@
 var SNS = require('sns-mobile');
 var moment = require('moment');
 var secrets = require('./secrets');
-
 var Promise = require('bluebird');
 
 var User = require('../../user/user.model');
@@ -12,18 +11,6 @@ var Ping = require('./ping.model');
 Promise.promisifyAll(Ping);
 Promise.promisifyAll(Ping.prototype);
 
-/*var androidApp = {};
-
-androidApp.sendMessage = function(arn, data, cb) {
-	setTimeout(function() {
-		if (data === null)
-			cb('error', null);
-		console.log('Sending message to arn: ' + arn);
-		console.log('\nWith data payload: ' + JSON.stringify(data));
-		cb(null, 'message from function mock');
-	}, 1000);
-};*/
-
 var androidApp = new SNS({
   platform: SNS.SUPPORTED_PLATFORMS.ANDROID,
   region: 'us-west-2',
@@ -33,9 +20,7 @@ var androidApp = new SNS({
   platformApplicationArn: secrets.SNS_ANDROID_ARN
 });
 
-
 Promise.promisifyAll(androidApp);
-
 
 // Handle user added events
 androidApp.on('userAdded', function(endpointArn, deviceId) {
@@ -45,7 +30,6 @@ androidApp.on('userAdded', function(endpointArn, deviceId) {
 	);
 });
 
-
 // Handle single/multiple messages fail in a broadcast
 androidApp.on('sendFailed', function(endpointArn, err) {
 	console.log(
@@ -54,18 +38,13 @@ androidApp.on('sendFailed', function(endpointArn, err) {
 	);
 });
 
-
 // helper functions
-sendMessageAsync = Promise.promisify(androidApp.sendMessage);
-
-
 function extractVolunteer(group, volunteer) {
 	for (var i = 0; i < group.length; i++) {
 		if (group[i].app_id.equals(volunteer))
 			return group.splice(i, 1).pop();
 	}
 }
-
 
 function searchForUser(group, user_id) {
 	for (var i = 0; i < group.length; i++) {
@@ -119,13 +98,16 @@ exports.initiatePing = function(req, res, next) {
 	var dateOfPing = pingBody.time ? moment(pingBody.time) : moment();
 	var day = dateOfPing.day();
 
-	User.find({_id: {$in: req.community.caretakers}}).exec(function(err, users) {
+	req
+	.community
+	.populate('patient caretakers')
+	.exec(function(err, community) {
 		if (err) {
 			console.log(err);
-			res.json(err);
+			res.status(500).json(err);
 		}
 		else {
-			availUsers = users.filter(function(user) {
+			availUsers = community.caretakers.filter(function(users) {
 				// has no registered device
 				if (!user.login_info.endpoint_arn) return false;
 
@@ -140,8 +122,8 @@ exports.initiatePing = function(req, res, next) {
 				for (var i = 0; i < curAvail.length; i++) {
 					var av = curAvail[i];
 
-					var avsm = moment(av.start.time);
-					var avem = moment(av.end.time);
+					var avsm = moment.utc(av.start.time);
+					var avem = moment.utc(av.end.time);
 
 					var startBool;
 					var endBool;
@@ -180,10 +162,14 @@ exports.initiatePing = function(req, res, next) {
 			}
 			else {
 				var ping = new Ping({available: availUsers});
+
+				pingBody.ping_id = ping._id;
+				pingBody.patient_name = community.patient.first_name + ' ' + community.patient.last_name;
+
 				var payload = {
 					data: {
-						message: pingBody,
-						group_id: group._id
+						type: 'request',
+						ping: pingBody
 					}
 				};
 
@@ -205,6 +191,16 @@ exports.initiatePing = function(req, res, next) {
 			}
 		}
 	});
+
+
+	/*User.find({_id: {$in: req.community.caretakers}}).exec(function(err, users) {
+		if (err) {
+			console.log(err);
+			res.json(err);
+		}
+		else {
+		}
+	});*/
 };
 
 

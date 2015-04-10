@@ -1,6 +1,9 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
+// TODO
+// ping type: request, response
+
 var pingedCaretaker = new Schema({
 	app_id: Schema.Types.ObjectId,
 	sns_id: String

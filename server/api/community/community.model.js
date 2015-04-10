@@ -12,7 +12,8 @@ var communitySchema = new Schema({
 	},
 	patient: {
 		type: Schema.Types.ObjectId,
-		required: true
+		required: true,
+		ref: 'User'
 	},
 	caretakers: [{
 		type: Schema.Types.ObjectId,
