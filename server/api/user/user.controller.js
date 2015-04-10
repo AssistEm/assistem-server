@@ -4,11 +4,8 @@ var passport = require('passport');
 var auth = require('../../auth/auth.service');
 var moment = require('moment');
 var _ = require('lodash');
-
 var secrets = require('../community/ping/secrets');
-
 var SNS = require('sns-mobile');
-
 var Promise = require('bluebird');
 
 Promise.promisifyAll(User);
@@ -35,8 +32,7 @@ exports.register = function(req, res, next) {
 	.then(function(endpointArn) {
 		return req.user.updateAsync({$set: {'login_info.endpoint_arn': endpointArn}});
 	})
-	.then(function(registeredUser) {
-		console.log('Registered new user with endpoint_arn: ' + endpointArn);
+	.then(function() {
 		res.status(200).json({});
 	})
 	.catch(function(err) {

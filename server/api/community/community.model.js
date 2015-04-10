@@ -14,14 +14,15 @@ var communitySchema = new Schema({
 		type: Schema.Types.ObjectId,
 		required: true
 	},
-	caretakers: {
-		type: [Schema.Types.ObjectId],
+	caretakers: [{
+		type: Schema.Types.ObjectId,
 		ref: 'User'
-	},
+	}],
 	privacy: {
 		type: Boolean,
 		required: true
 	},
+	primary_caretaker: Schema.Types.ObjectId,
 	grocery_list_id: Schema.Types.ObjectId
 });
 

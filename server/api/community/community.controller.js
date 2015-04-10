@@ -199,11 +199,32 @@ exports.delete = function(req, res) {
 };
 
 exports.caretakers = function(req, res) {
-	req.community.populate('caretakers', function() {
-		console.log(arguments);
+	req
+	.community
+	.populate('caretakers', function(err, community) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			res.status(200).json(community.caretakers);
+		}
 	});
 };
 
 exports.makePrimary = function(req, res) {
+	var caretakerId = req.body.caretaker_id;
 
+	req
+	.community
+	.update({$set: {primary_caretaker: caretakerId}})
+	.exec(function(err, doc) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			res.status(200).json(doc);
+		}
+	});
 };
