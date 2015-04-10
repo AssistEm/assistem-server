@@ -100,8 +100,7 @@ exports.initiatePing = function(req, res, next) {
 
 	req
 	.community
-	.populate('patient caretakers')
-	.exec(function(err, community) {
+	.populate('patient caretakers', function(err, community) {
 		if (err) {
 			console.log(err);
 			res.status(500).json(err);
