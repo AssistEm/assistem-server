@@ -452,8 +452,8 @@ exports.getAvailability = function(req, res) {
 };
 
 exports.updateAvailability = function(req, res) {
-	var availabilityId = req.body.availability_id;
-	req.body.update._id = availabilityId;
+	var availabilityId = req.params.availability_id;
+	req.body._id = availabilityId;
 
 	User
 	.update(
@@ -461,20 +461,20 @@ exports.updateAvailability = function(req, res) {
 			_id: req.user._id,
 			'caretaker_info.availability._id': availabilityId
 		},
-		{$set: {'caretaker_info.availability.$': req.body.update}},
-		function(err, user) {
+		{$set: {'caretaker_info.availability.$': req.body}},
+		function(err, numAffected) {
 			if (err) {
 				console.log(err);
 				res.status(500).json(err);
 			}
 			else {
-				res.status(200).json(user);
+				res.status(200).json({});
 			}
 	});
 };
 
 exports.removeAvailability = function(req, res) {
-	var availabilityId = req.body.availability_id;
+	var availabilityId = req.params.availability_id;
 
 	req.user.caretaker_info.availability.pull({_id: availabilityId});
 
@@ -482,13 +482,13 @@ exports.removeAvailability = function(req, res) {
 	.user
 	.update(
 		{'caretaker_info.availability': req.user.caretaker_info.availability},
-		function(err, user) {
+		function(err, numAffected) {
 			if (err) {
 				console.log(err);
 				res.status(500).json(err);
 			}
 			else {
-				res.status(200).json(user);
+				res.status(204).json({});
 			}
 	});
 };
