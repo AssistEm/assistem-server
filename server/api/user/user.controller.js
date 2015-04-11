@@ -257,21 +257,135 @@ exports.changePassword = function(req, res, next) {
 	});
 };
 
+function transformUpdates(obj) {
+	function bar1(prnt, sub_o) {
+		if (typeof sub_o !== 'object' || sub_o.constructor === Array)
+			return prnt;
+
+		var res = [];
+
+		for (var s_key in sub_o) {
+			var egg = bar1(s_key, sub_o[s_key]);
+
+			if (egg.constructor === Array) {
+				bar1(s_key, sub_o[s_key]).map(function(path) {
+					res.push(prnt + '.' + path);
+				});
+			}
+			else
+				res.push(prnt + '.' + bar1(s_key, sub_o[s_key]));
+		}
+
+		return res;
+	}
+
+	function bar2(path, obj) {
+		var cpv = obj[path.split('.').shift()];
+
+		if (typeof cpv !== 'object' || cpv.constructor === Array)
+			return cpv;
+
+		var np = path.split('.').splice(1, path.length).join('.');
+		return bar2(np, cpv);
+	}
+
+	var res = {};
+
+	for (var fld in obj) {
+		var val = obj[fld];
+
+		if (typeof val === 'object' && val.constructor !== Array) {
+			bar1(fld, val).map(function(path) {
+				res[path] = bar2(path, obj);
+			});
+		}
+		else
+			res[fld] = val;
+	}
+
+	return res;
+}
+
+/*function foo(obj) {
+	function bar(val) {
+		if (typeof val === 'object')
+			return 
+	}
+
+	var res = {};
+
+	for (var fld in obj) {
+		if (typeof obj[fld] === 'object') {
+			for (var subFld in obj[fld])
+				res[fld + '.' + subFld] = obj[fld][subFld];
+		}
+		else
+			res[fld] = obj[fld];
+	}
+
+	return res;
+}*/
+
+/*function foo(obj) {
+	function _foo(fld, val) {
+		if (typeof val === 'object') {
+			for (var key in val)
+				_foo(key, val[key]);
+		}
+
+		console.log(fld + '.' + val);
+	}
+
+	res = {};
+	for (var key in obj) {
+		if (obj.hasOwnProperty(key))
+			res[key] = _foo(key, obj[key]);
+	}
+}*/
+
 /*
  * Change a users settings
  */
 exports.changeSettings = function(req, res, next) {
 	var userId = req.user._id;
-	var updated_info = req.body;
-	
-	User.update({ '_id' : userId}, updated_info, function(err) {
+	var updates = [];
+	var query, tmp;
+
+	if (req.body.caretaker_info.availability) {
+		tmp = req.body.caretaker_info.availability;
+		var update = { $push: { 'caretaker_info.availability': { $each: tmp } } };
+
+		updates.push(User.updateAsync({_id: userId}, update));
+	}
+
+	delete req.body.caretaker_info.availability;
+	updates.push(User.updateAsync({_id: userId}, {$set: transformUpdates(req.body)}));
+
+	Promise.all(updates).then(function() {
+		console.log(arguments);
+		res.status(200).json({});
+	});
+
+	/*console.log(JSON.stringify(updates));
+
+	User.update({_id: userId}, {$set: updates}, function(err) {
+		if (err) {
+			console.log(err);
+			res.status(500).send(err);
+		}
+		else {
+			res.status(200).json({});
+		}
+	});*/
+
+	/*User.update({ '_id' : userId}, updated_info, function(err) {
 		if (err) {
 			console.log('err = ' + err);
 			return res.status(409).send(err);
 		}
 
 		res.status(200).json({});
-	});
+	});*/
 };
 
 /*
@@ -334,5 +448,47 @@ exports.getAvailability = function(req, res) {
 		else {
 			res.status(200).json({is_available: user.caretaker_info.global_availability});
 		}
+	});
+};
+
+exports.updateAvailability = function(req, res) {
+	var availabilityId = req.body.availability_id;
+	req.body.update._id = availabilityId;
+
+	User
+	.update(
+		{
+			_id: req.user._id,
+			'caretaker_info.availability._id': availabilityId
+		},
+		{$set: {'caretaker_info.availability.$': req.body.update}},
+		function(err, user) {
+			if (err) {
+				console.log(err);
+				res.status(500).json(err);
+			}
+			else {
+				res.status(200).json(user);
+			}
+	});
+};
+
+exports.removeAvailability = function(req, res) {
+	var availabilityId = req.body.availability_id;
+
+	req.user.caretaker_info.availability.pull({_id: availabilityId});
+
+	req
+	.user
+	.update(
+		{'caretaker_info.availability': req.user.caretaker_info.availability},
+		function(err, user) {
+			if (err) {
+				console.log(err);
+				res.status(500).json(err);
+			}
+			else {
+				res.status(200).json(user);
+			}
 	});
 };

@@ -11,6 +11,17 @@ var Ping = require('./ping.model');
 Promise.promisifyAll(Ping);
 Promise.promisifyAll(Ping.prototype);
 
+/**
+ * Enum for a ping response
+ * @readonly
+ * @enum {Number}
+ */
+var PING_RESPONSE = {
+	YES: 1,
+	NO: 2,
+	DEFFER: 3
+};
+
 var androidApp = new SNS({
   platform: SNS.SUPPORTED_PLATFORMS.ANDROID,
   region: 'us-west-2',
@@ -30,6 +41,7 @@ androidApp.on('userAdded', function(endpointArn, deviceId) {
 	);
 });
 
+
 // Handle single/multiple messages fail in a broadcast
 androidApp.on('sendFailed', function(endpointArn, err) {
 	console.log(
@@ -37,6 +49,7 @@ androidApp.on('sendFailed', function(endpointArn, err) {
 		'\nError returned: ' + err
 	);
 });
+
 
 // helper functions
 function extractVolunteer(group, volunteer) {
@@ -46,6 +59,7 @@ function extractVolunteer(group, volunteer) {
 	}
 }
 
+
 function searchForUser(group, user_id) {
 	for (var i = 0; i < group.length; i++) {
 		if (group[i].app_id.equals(user_id))
@@ -53,9 +67,78 @@ function searchForUser(group, user_id) {
 	}
 }
 
+
 /*
+ * Check a users availability based on their settings.
+ * @param {String} ping An ISO 8601 UTC formatted string
+ * @param user an object returned from mongoose js
+ */
+function availableUsers(ping, user) {
+	var dateOfPing,
+			dayOfWeek;
+
+	// has no registered device
+	if (!user.login_info.endpoint_arn) return false;
+
+	// is currently available, regardless of availability times
+	if (user.caretaker_info.global_availability) return true;
+
+	var curAvail = user.caretaker_info.availability;
+
+	// has not set availability times
+	if (!curAvail) return false;
+
+	dateOfPing = pingBody.time ? moment(pingBody.time) : moment();
+	dayOfWeek = dateOfPing.day();
+
+	for (var i = 0; i < curAvail.length; i++) {
+		var av = curAvail[i];
+
+		var avsm = moment.utc(av.start.time);
+		var avem = moment.utc(av.end.time);
+
+		var startBool;
+		var endBool;
+
+		if (avsm.hour() < dateOfPing.hour())
+			startBool = true;
+		else if (avsm.hour() === dateOfPing.hour() && avsm.minute() <= dateOfPing.minute())
+			startBool = true;
+		else
+			startBool = false;
+
+		if (avem.hour() > dateOfPing.hour())
+			endBool = true;
+		else if (avem.hour() === dateOfPing.hour() && avem.minute() >= dateOfPing.minute())
+			endBool = true;
+		else
+			endBool = false;
+
+		var timeBool = startBool && endBool;
+		var DayBool = av.start.day_of_week >= dayOfWeek && av.end.day_of_week <= dayOfWeek;
+
+		if (timeBool && DayBool) return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * Maps a user object into smaller object with required info to ping devices
+ * @param user an object returned from mongoose js
+ */
+function pingAddress(user) {
+	return {app_id: user._id, sns_id: user.login_info.endpoint_arn};
+}
+
+
+/**
+ * Asynchronously send messages to group of caretakers
  * @param group array of objects with field 'sns_id' as amazon aws sns arn
- * @param payload JSON being sent as part of message
+ * @param payload object being sent as JSON to caretakers as ping response
+ * @param payload.message string human readable message sent to each caretaker
+ * @returns {Array} an array of promises to send message to caretakers
  */
 function sendPings(group, payload) {
 	var msgs = [];
@@ -66,7 +149,6 @@ function sendPings(group, payload) {
 
 	return Promise.all(msgs);
 }
-
 
 
 //Registers a mobile client (android)
@@ -95,8 +177,6 @@ exports.initiatePing = function(req, res, next) {
 	// TODO: only patients can ping
 
 	var pingBody = req.body;
-	var dateOfPing = pingBody.time ? moment(pingBody.time) : moment();
-	var day = dateOfPing.day();
 
 	req
 	.community
@@ -106,54 +186,9 @@ exports.initiatePing = function(req, res, next) {
 			res.status(500).json(err);
 		}
 		else {
-			availUsers = community.caretakers.filter(function(user) {
-				// has no registered device
-				if (!user.login_info.endpoint_arn) return false;
-
-				// is currently available, regardless of availability times
-				if (user.caretaker_info.global_availability) return true;
-
-				var curAvail = user.caretaker_info.availability;
-
-				// has not set availability times
-				if (!curAvail) return false;
-
-				for (var i = 0; i < curAvail.length; i++) {
-					var av = curAvail[i];
-
-					var avsm = moment.utc(av.start.time);
-					var avem = moment.utc(av.end.time);
-
-					var startBool;
-					var endBool;
-
-					if (avsm.hour() < dateOfPing.hour())
-						startBool = true;
-					else if (avsm.hour() === dateOfPing.hour() && avsm.minute() <= dateOfPing.minute())
-						startBool = true;
-					else
-						startBool = false;
-
-					if (avem.hour() > dateOfPing.hour())
-						endBool = true;
-					else if (avem.hour() === dateOfPing.hour() && avem.minute() >= dateOfPing.minute())
-						endBool = true;
-					else
-						endBool = false;
-
-					var timeBool = startBool && endBool;
-					var DayBool = av.start.day_of_week >= day && av.end.day_of_week <= day;
-
-					if (timeBool && DayBool) return true;
-				}
-
-				return false;
-			})
-			.map(function(user) {
-				return {app_id: user._id, sns_id: user.login_info.endpoint_arn};
-			});
-
-			console.log('available user: ' + JSON.stringify(availUsers));
+			availUsers = community.caretakers
+				.filter(availableUsers)
+				.map(pingAddress);
 
 			if (availUsers.length === 0) {
 				console.log('pinging regular guy');
@@ -190,28 +225,13 @@ exports.initiatePing = function(req, res, next) {
 			}
 		}
 	});
-
-
-	/*User.find({_id: {$in: req.community.caretakers}}).exec(function(err, users) {
-		if (err) {
-			console.log(err);
-			res.json(err);
-		}
-		else {
-		}
-	});*/
 };
-
 
 
 //Responds to a ping from the correct caretaker
 exports.respondPing = function(req, res, next) {
 	var userId = req.user._id;
 	var response = req.body.response;
-
-	var YES = 1,
-			NO = 2,
-			DEFFER = 3; 
 
 	Ping.findOne({_id: req.params.ping_id}, function(err, group) {
 		if (err) {
@@ -222,9 +242,10 @@ exports.respondPing = function(req, res, next) {
 			res.status(404).json({});
 		}
 		else {
+			console.log('picked YES');
 			var payload = { data: { message: '' } };
 
-			if (response === YES) {
+			if (response === PING_RESPONSE.YES) {
 				payload.message = 'Someone has volunteered';
 				var volunteer = extractVolunteer(group.available, userId);
 
@@ -243,24 +264,26 @@ exports.respondPing = function(req, res, next) {
 
 				res.status(200).json({});
 			}
-			else if (response === NO || DEFFER) {
+			else if (response === PING_RESPONSE.NO || PING_RESPONSE.DEFFER) {
 				console.log('picked DEFFER or NO');
 
-				if (response === NO)
+				if (response === PING_RESPONSE.NO)
 					group.no_count += 1;
-				else if (response === DEFFER)
-					group.deffered.push(searchForUser(group.available, userId));
+				else if (response === PING_RESPONSE.DEFFER)
+					group.deferred.push(searchForUser(group.available, userId));
 
-				if (group.no_count + group.deffered.length === group.available.length) {
-					if (group.deffered.length) {
-						group.available = group.deffered;
-						group.deffered = [];
+				// everybody has replied to ping and no one has chosen YES
+				if (group.no_count + group.deferred.length === group.available.length) {
+					// some have chosen to defer
+					if (group.deferred.length) {
+						group.available = group.deferred;
+						group.deferred = [];
 						group.no_count = 0;
 
 						group
 						.saveAsync()
 						.then(function() {
-							payload.message = 'Second attempt ping';
+							payload.message = 'No one was available on initial ping. Are you available now?';
 							return sendPings(group, payload);
 						})
 						.then(function() {
@@ -268,30 +291,28 @@ exports.respondPing = function(req, res, next) {
 							res.status(200).json({});
 						})
 						.catch(function() {
-							console.log('Error, something whent wrong when sending second ping');
+							console.log('Error, something whent wrong when sending second attempt ping');
 						});
 					}
-					else { // if no one deffered
+					// no one has chosen to defer
+					else {
 						// send to regular guy
 						console.log('sending regular guy ping');
 					}
 				}
-				else { // if not everyone has responded
+				// not everybody has responded to ping
+				else {
 					group.save(function(err, group) {
 						if (err) {
 							console.log(err);
 							res.status(500).json(err);
 						}
 						else {
-							res.end();
+							res.status(200).json({});
 						}
 					});
 				}
 			}
-			/*else if (response === DEFFER) {
-				console.log('picked DEFFER');
-				res.end();
-			}*/
 		}
 	});
 };

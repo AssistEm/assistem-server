@@ -15,6 +15,8 @@ router.get('/:id', auth.isAuthenticated, controller.show);
 router.post('/', controller.create, communityController.createCommunity);
 router.put('/:user_id/available', auth.isAuthenticated, controller.setAvailability);
 router.get('/:user_id/available', auth.isAuthenticated, controller.getAvailability);
+router.post('/:user_id/available', auth.isAuthenticated, controller.updateAvailability);
+router.delete('/:user_id/available', auth.isAuthenticated, controller.removeAvailability);
 router.post('/me/pushregister', auth.isAuthenticated, controller.register);
 
 module.exports = router;

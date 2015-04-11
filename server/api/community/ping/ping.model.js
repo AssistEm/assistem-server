@@ -11,7 +11,7 @@ var pingedCaretaker = new Schema({
 
 var Ping = new Schema({
 	available: [pingedCaretaker],
-	deffered: [pingedCaretaker],
+	deferred: [pingedCaretaker],
 	no_count: {
 		type: Number,
 		default: 0
