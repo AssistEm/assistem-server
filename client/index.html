@@ -17,7 +17,21 @@
 	</head>
 	<body>
 		<div class="container">
-			<div ui-view></div>
+			<div class="row">
+				<div class="col-md-12">
+					<div class="page-header">
+						<div class="pull-right">
+							<a class="btn btn-success" href="#">signup</a>
+							<a class="btn btn-default" href="#">login</a>
+						</div>
+						<h1>Assist'em <small>a system to assist them</small></h1>
+					</div>
+				</div>
+			</div>
+
+			<div class="row">
+				<div ui-view></div>
+			</div>
 		</div>
 
 		<script src="/bower_components/jquery/dist/jquery.min.js"></script>
@@ -28,6 +42,7 @@
 
 		<script src="/app/app.js"></script>
 		<script src="/app/components/main/main.js"></script>
+		<script src="/app/components/main/home/home.controller.js"></script>
 		<script src="/app/components/main/register/register.controller.js"></script>
 	</body>
 </html>
