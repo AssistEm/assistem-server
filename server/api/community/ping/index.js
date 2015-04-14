@@ -24,4 +24,3 @@ router.put('/:ping_id', controller.respondPing);
 
 
 module.exports = router;
-

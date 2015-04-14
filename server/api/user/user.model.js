@@ -151,4 +151,8 @@ UserSchema.methods.verifyPassword = function(password, callback) {
 	});
 };
 
+UserSchema.methods.getFullName = function() {
+	return this.first_name + ' ' + this.last_name;
+};
+
 module.exports = mongoose.model('User', UserSchema);

@@ -23,7 +23,10 @@ var communitySchema = new Schema({
 		type: Boolean,
 		required: true
 	},
-	primary_caretaker: Schema.Types.ObjectId,
+	primary_caretaker: {
+		type: Schema.Types.ObjectId,
+		ref: 'User'
+	},
 	grocery_list_id: Schema.Types.ObjectId
 });
 
