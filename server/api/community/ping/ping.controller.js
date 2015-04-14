@@ -155,7 +155,7 @@ function sendPings(group, payload) {
 
 
 function pingPrimary(ping, payload, res) {
-	payload.data.type = 'primary';
+	payload.data.message.type = 'primary';
 
 	androidApp
 	.sendMessageAsync(ping.getPrimary().sns_id, payload)
@@ -185,7 +185,7 @@ function pingDeferred(ping, payload, res) {
 	ping
 	.saveAsync()
 	.then(function() {
-		payload.data.type = 'defer';
+		payload.data.message.type = 'defer';
 
 		return sendPings(ping.available, payload);
 	})
@@ -241,11 +241,12 @@ exports.initiatePing = function(req, res, next) {
 				pingBody.ping_id = ping._id;
 				pingBody.patient_name = community.patient.getFullName();
 
-
 				var payload = {
 					data: {
-						type: 'request',
-						ping: pingBody
+						message: {
+							type: 'request',
+							ping: pingBody
+						}
 					}
 				};
 
@@ -255,11 +256,11 @@ exports.initiatePing = function(req, res, next) {
 					return sendPings(availUsers, payload);
 				})
 				.then(function() {
-					expTime = moment(dateOfPing).add(moment.duration(4, 'hours'));
+					//expTime = moment(dateOfPing).add(moment.duration(4, 'hours'));
 
-					req.app.get('agenda').schedule(
+					/*req.app.get('agenda').schedule(
 						expTime.toDate(), 'expire ping', {pingId: ping._id}
-					);
+					);*/
 
 					res.status(200).json({ping_id: ping._id});
 				})
@@ -316,17 +317,25 @@ exports.respondPing = function(req, res, next) {
 			res.status(404).json({});
 		}
 		else {
-			var payload = { data: {type: '', ping: cleanPing(ping)} };
+			var payload = {
+				data: {
+					message: {
+						type: '',
+						ping: cleanPing(ping)
+					}
+				}
+			};
 
 			if (response === PING_RESPONSE.YES) {
 				var volunteer = extractUser(ping.available, respondeeId);
 
 				// message group - volunteer that the ping has beeen fulfilled
-				payload.data.type = 'fulfilled';
+				payload.data.message.type = 'fulfilled';
 				sendPings(ping.available, payload)
 				.then(function() {
 				// message patient that the request has been fulfilled
-					payload.data.type = 'response';
+					payload.data.message.type = 'response';
+					payload.data.message.user = req.user;
 
 					return androidApp.sendMessageAsync(ping.getPatient().sns_id, payload);
 				})
