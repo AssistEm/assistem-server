@@ -75,6 +75,10 @@ var UserSchema = new Schema({
 
 	caretaker_info: {
 		communities: [Schema.Types.ObjectId],
+		global_availability: {
+			type: Boolean,
+			default: false
+		},
 		availability: [{
 			start: {
 				day_of_week: Number,
@@ -145,6 +149,15 @@ UserSchema.methods.verifyPassword = function(password, callback) {
 
 		return callback(null, res);
 	});
+};
+
+UserSchema.methods.getFullName = function() {
+	return this.first_name + ' ' + this.last_name;
+};
+
+
+UserSchema.methods.getPhone = function() {
+	return this.phone;
 };
 
 module.exports = mongoose.model('User', UserSchema);

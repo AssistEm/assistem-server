@@ -13,6 +13,7 @@ mongoose.connect(config.mongo.uri);
 var app = express();
 require('./config/express')(app);
 require('./routes')(app);
+app.set('agenda', require('./jobs'));
 
 var server = app.listen(config.port, function() {
   	console.log('Express server listening on port ' + server.address().port);

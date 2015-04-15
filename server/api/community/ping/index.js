@@ -11,7 +11,6 @@ var router = express.Router();
 router.use(auth.isAuthenticated);
 
 
-router.post('/register', controller.register);
 router.post('/', controller.initiatePing);
 router.put('/:ping_id', controller.respondPing);
 
@@ -24,4 +23,3 @@ router.put('/:ping_id', controller.respondPing);
 
 
 module.exports = router;
-
