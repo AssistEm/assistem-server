@@ -44,7 +44,7 @@ exports.index = function(req, res) {
 				}
 				else{
 					console.log(events);
-					res.send(events);	
+					res.status.json(events);	
 				}	
 			});
 
@@ -157,7 +157,7 @@ exports.create = function(req, res) {
 					next(err);
 				}
 
-				res.send(docs);
+				res.json(docs);
 			});
 		});
 	} else {
@@ -170,7 +170,7 @@ exports.create = function(req, res) {
 				next(err);
 			}
 
-			res.send([newEvent]);
+			res.json([newEvent]);
 		});
 	}
 };
@@ -258,7 +258,7 @@ exports.update = function(req, res) {
 					updatedEvents.push(updatePromise);
 				}
 				Promise.all(updatedEvents).then(function() {
-					res.send(event);
+					res.json(event);
 				});
 			});
 		}
@@ -275,7 +275,7 @@ exports.update = function(req, res) {
 					next(err);
 				}
 
-				res.send(event);
+				res.json(event);
 			});
 		}
 	});
@@ -297,7 +297,7 @@ exports.delete = function(req, res) {
 			}
 			if(!current_event.length)
 			{
-				res.status(404).end();
+				res.status(404).json({});
 			}
 			else{
 
@@ -310,7 +310,7 @@ exports.delete = function(req, res) {
 					if(err){
 						next(err);
 					}
-					res.status(204).end();
+					res.status(204).json({});
 				});
 
 				//If we want to remove all the events in a group and not just the future ones
@@ -333,7 +333,7 @@ exports.delete = function(req, res) {
 			if(err){
 				next(err);
 			}
-			res.send(204);
+			res.status(204).json({});
 		});
 		
 	}

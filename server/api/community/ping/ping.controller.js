@@ -294,6 +294,17 @@ exports.initiatePing = function(req, res, next) {
 // expired
 
 
+function constructPayload(ping, type) {
+	var payload = {data:{message:{}}};
+	var m = payload.data.message = {};
+
+	m.type = type;
+	m.ping = cleanPing(ping);
+
+	return payload;
+}
+
+
 function cleanPing(ping) {
 	var o = {};
 
@@ -310,6 +321,18 @@ function cleanPing(ping) {
 exports.respondPing = function(req, res, next) {
 	var respondeeId = req.user._id;
 	var response = req.body.response;
+
+	/*Ping
+	.findOneAsync({_id: req.params.ping_id})
+	.then(function(ping) {
+		if (!ping) Promise.reject();
+		console.log('success');
+		console.log(arguments);
+	})
+	.catch(function() {
+		console.log('error');
+		console.log(arguments);
+	});*/
 
 	Ping.findOne({_id: req.params.ping_id}, function(err, ping) {
 		if (err) {
