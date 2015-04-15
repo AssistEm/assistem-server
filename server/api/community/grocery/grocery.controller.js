@@ -171,7 +171,7 @@ exports.volunteerItem = function(req, res) {
 				next(err);
 			}
 			else {
-				res.status(200).end();
+				res.status(200).json({});
 			}
 		});
 	}
