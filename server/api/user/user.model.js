@@ -151,4 +151,13 @@ UserSchema.methods.verifyPassword = function(password, callback) {
 	});
 };
 
+UserSchema.methods.getFullName = function() {
+	return this.first_name + ' ' + this.last_name;
+};
+
+
+UserSchema.methods.getPhone = function() {
+	return this.phone;
+};
+
 module.exports = mongoose.model('User', UserSchema);

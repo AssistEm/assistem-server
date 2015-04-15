@@ -353,7 +353,8 @@ exports.changeSettings = function(req, res, next) {
 
 	if (req.body.caretaker_info.availability) {
 		tmp = req.body.caretaker_info.availability;
-		var update = { $push: { 'caretaker_info.availability': { $each: tmp } } };
+		//var update = { $push: { 'caretaker_info.availability': { $each: tmp } } };
+		var update = {$set: {'caretaker_info.availability': tmp}};
 
 		updates.push(User.updateAsync({_id: userId}, update));
 	}

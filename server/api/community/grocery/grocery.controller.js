@@ -137,7 +137,7 @@ exports.volunteerItem = function(req, res) {
 		if (item.volunteer && item.volunteer.volunteer_id) { // already a volunteer
 			// only patients should get these messages because
 			// caretakers will get list of un-volunteered for items
-			if (!item.volunteer.volunteer_id.equals(req.user._id)) { // req.user !== item.volunteer
+			if (!item.volunteer.volunteer_id._id.equals(req.user._id)) { // req.user !== item.volunteer
 				res.status(403).json({msg: "someone already volunteering for item"});
 			}
 			else {
@@ -152,7 +152,7 @@ exports.volunteerItem = function(req, res) {
 	}
 	else { // attemtping to un-volunteer
 		if (item.volunteer && item.volunteer.volunteer_id) { // already a volunteer
-			if (!item.volunteer.volunteer_id.equals(req.user._id)) { // req.user !== item.volunteer
+			if (!item.volunteer.volunteer_id._id.equals(req.user._id)) { // req.user !== item.volunteer
 				res.status(403).json({msg: "you can only un-volunteer yourself"});
 			}
 			else {
