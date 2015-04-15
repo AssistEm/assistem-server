@@ -11,6 +11,8 @@ var Ping = require('./ping.model');
 Promise.promisifyAll(Ping);
 Promise.promisifyAll(Ping.prototype);
 
+// response to volunteer is patient anme and phone number
+
 /**
  * Enum for a ping response
  * @readonly
@@ -299,6 +301,7 @@ function cleanPing(ping) {
 	o.description = ping.description;
 	o.location = ping.location;
 	o.time = ping.time;
+	o.ping_id = ping._id;
 
 	return o;
 }
@@ -317,14 +320,22 @@ exports.respondPing = function(req, res, next) {
 			res.status(404).json({});
 		}
 		else {
-			var payload = {
-				data: {
-					message: {
-						type: '',
-						ping: cleanPing(ping)
-					}
+			User.findOne({_id: ping.getPatient().app_id}, function(err, patient) {
+				if (err) {
+					console.log('err getting patient');
+					res.status(500).json({});
 				}
-			};
+				else {
+					var payload = {
+						data: {
+							message: {
+								type: '',
+								ping: cleanPing(ping)
+							}
+						}
+					};
+
+			payload.data.message.ping.patient_name = patient.getFullName();
 
 			if (response === PING_RESPONSE.YES) {
 				var volunteer = extractUser(ping.available, respondeeId);
@@ -345,9 +356,9 @@ exports.respondPing = function(req, res, next) {
 				})
 				.then(function(removedPing) {
 				// respond to volunteer that they have successfully volunteered
-					console.log(removedPing);
+					payload.data.message.ping.patient_phone = patient.getPhone();
 
-					res.status(200).json(removedPing);
+					res.status(200).json(payload);
 				})
 				.catch(function() {
 					console.log('an error occured while trying to ping group');
@@ -370,7 +381,22 @@ exports.respondPing = function(req, res, next) {
 					}
 					// no one has chosen to defer
 					else {
-						pingPrimary(ping, payload, res);
+						payload.data.message.type = 'response';
+						payload.data.message.user = req.user;
+
+						androidApp
+						.sendMessageAsync(ping.getPatient().sns_id, payload)
+						.then(function() {
+							delete payload.data.message.user;
+
+							pingPrimary(ping, payload, res);
+						})
+						.catch(function() {
+							console.log('an error occured while trying to ping group');
+							console.log(arguments);
+
+							res.status(500).json({});
+						});
 					}
 				}
 				// not everybody has responded to ping
@@ -384,8 +410,10 @@ exports.respondPing = function(req, res, next) {
 							res.status(200).json({});
 						}
 					});
+						}
+					}
 				}
-			}
+		});
 		}
 	});
 };

@@ -43,20 +43,22 @@ module.exports = function(agenda) {
 			else {
 				var payload = {
 					data: {
-						type: 'expired',
-						ping: {
-							title: ping.title,
-							description: ping.description,
-							location: ping.location,
-							time: ping.time,
-							ping_id: ping._id
+						message: {
+							type: 'expired',
+							ping: {
+								title: ping.title,
+								description: ping.description,
+								location: ping.location,
+								time: ping.time,
+								ping_id: ping._id
+							}
 						}
 					}
 				};
 
 				var msgs = [];
 
-				msgs.push(androidApp.sendMessageAsync(ping.getPatient().sns_id));
+				msgs.push(androidApp.sendMessageAsync(ping.getPatient().sns_id, payload));
 
 				for (var i = 0; i < ping.available.length; i++) {
 					msgs.push(
