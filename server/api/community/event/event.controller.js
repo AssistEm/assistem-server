@@ -44,7 +44,7 @@ exports.index = function(req, res) {
 				}
 				else{
 					console.log(events);
-					res.status.json(events);	
+					res.json(events);	
 				}	
 			});
 

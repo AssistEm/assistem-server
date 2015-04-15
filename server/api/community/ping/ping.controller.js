@@ -216,12 +216,45 @@ exports.initiatePing = function(req, res, next) {
 		else {
 			var dateOfPing = pingBody.time ? moment.utc(pingBody.time) : moment.utc();
 
+			var payload = {
+				data: {
+					message: {
+						type: 'request',
+						ping: pingBody
+					}
+				}
+			};
+
+			pingBody.patient_name = community.patient.getFullName();
+
 			availUsers = community.caretakers
 				.filter(availableUsers(dateOfPing))
 				.map(pingAddress);
 
 			if (availUsers.length === 0) {
-				res.status(200).json({});
+				console.log('no one available, sending to primary');
+
+				payload.data.message.type = 'response';
+				payload.data.message.user = req.user;
+
+				androidApp
+				.sendMessageAsync(community.patient.login_info.endpoint_arn, payload)
+				.then(function() {
+					delete payload.data.message.user;
+
+					return androidApp.sendMessageAsync(
+						community.primary_caretaker.login_info.endpoint_arn, payload
+					);
+				})
+				.then(function() {
+					res.status(200).json({});
+				})
+				.catch(function() {
+					console.log('an error occured while trying to ping group');
+					console.log(arguments);
+
+					res.status(500).json({});
+				});
 			}
 			else {
 				var ping = new Ping({
@@ -241,16 +274,6 @@ exports.initiatePing = function(req, res, next) {
 				});
 
 				pingBody.ping_id = ping._id;
-				pingBody.patient_name = community.patient.getFullName();
-
-				var payload = {
-					data: {
-						message: {
-							type: 'request',
-							ping: pingBody
-						}
-					}
-				};
 
 				ping
 				.saveAsync()
@@ -322,12 +345,21 @@ exports.respondPing = function(req, res, next) {
 	var respondeeId = req.user._id;
 	var response = req.body.response;
 
-	/*Ping
+	/*var ping,
+			patient;
+
+	Ping
 	.findOneAsync({_id: req.params.ping_id})
 	.then(function(ping) {
-		if (!ping) Promise.reject();
-		console.log('success');
-		console.log(arguments);
+		if (!ping) return Promise.reject('ping not found');
+
+		console.log('Found ping with ping_id: ' + ping.id);
+		return User.findOneAsync({_id: ping.getPatient().app_id});
+	})
+	.then(function(patient) {
+		if (!patient) return Promise.reject('patient not found');
+
+		console.log('Found patient: ' + JSON.stringify(patient));
 	})
 	.catch(function() {
 		console.log('error');
@@ -336,7 +368,8 @@ exports.respondPing = function(req, res, next) {
 
 	Ping.findOne({_id: req.params.ping_id}, function(err, ping) {
 		if (err) {
-			//handleErrors(err, res);
+			console.log(err);
+			res.status(500).json({});
 		}
 		else if (!ping) {
 			console.log('NOT FOUND, ping with id: ' + req.params.ping_id);
@@ -358,61 +391,30 @@ exports.respondPing = function(req, res, next) {
 						}
 					};
 
-			payload.data.message.ping.patient_name = patient.getFullName();
+					payload.data.message.ping.patient_name = patient.getFullName();
 
-			if (response === PING_RESPONSE.YES) {
-				var volunteer = extractUser(ping.available, respondeeId);
+					if (response === PING_RESPONSE.YES) {
+						var volunteer = extractUser(ping.available, respondeeId);
 
-				// message group - volunteer that the ping has beeen fulfilled
-				payload.data.message.type = 'fulfilled';
-				sendPings(ping.available, payload)
-				.then(function() {
-				// message patient that the request has been fulfilled
-					payload.data.message.type = 'response';
-					payload.data.message.user = req.user;
-
-					return androidApp.sendMessageAsync(ping.getPatient().sns_id, payload);
-				})
-				.then(function() {
-				// remove ping from database
-					return ping.removeAsync();
-				})
-				.then(function(removedPing) {
-				// respond to volunteer that they have successfully volunteered
-					payload.data.message.ping.patient_phone = patient.getPhone();
-
-					res.status(200).json(payload);
-				})
-				.catch(function() {
-					console.log('an error occured while trying to ping group');
-					console.log(arguments);
-
-					res.status(500).json({});
-				});
-			}
-			else if (response === PING_RESPONSE.NO || PING_RESPONSE.DEFFER) {
-				if (response === PING_RESPONSE.NO)
-					ping.no_count += 1;
-				else if (response === PING_RESPONSE.DEFFER)
-					ping.deferred.push(getUser(ping.available, respondeeId));
-
-				// everybody has replied to ping and no one has chosen YES
-				if (exhaustedAvailable(ping)) {
-					// some have chosen to defer
-					if (ping.deferred.length && !ping.isDeferred) {
-						pingDeferred(ping, payload, res);
-					}
-					// no one has chosen to defer
-					else {
-						payload.data.message.type = 'response';
-						payload.data.message.user = req.user;
-
-						androidApp
-						.sendMessageAsync(ping.getPatient().sns_id, payload)
+						// message group - volunteer that the ping has beeen fulfilled
+						payload.data.message.type = 'fulfilled';
+						sendPings(ping.available, payload)
 						.then(function() {
-							delete payload.data.message.user;
+						// message patient that the request has been fulfilled
+							payload.data.message.type = 'response';
+							payload.data.message.user = req.user;
 
-							pingPrimary(ping, payload, res);
+							return androidApp.sendMessageAsync(ping.getPatient().sns_id, payload);
+						})
+						.then(function() {
+						// remove ping from database
+							return ping.removeAsync();
+						})
+						.then(function(removedPing) {
+						// respond to volunteer that they have successfully volunteered
+							payload.data.message.ping.patient_phone = patient.getPhone();
+
+							res.status(200).json(payload);
 						})
 						.catch(function() {
 							console.log('an error occured while trying to ping group');
@@ -421,22 +423,53 @@ exports.respondPing = function(req, res, next) {
 							res.status(500).json({});
 						});
 					}
-				}
-				// not everybody has responded to ping
-				else {
-					ping.save(function(err, ping) {
-						if (err) {
-							console.log(err);
-							res.status(500).json({});
+					else if (response === PING_RESPONSE.NO || PING_RESPONSE.DEFFER) {
+						if (response === PING_RESPONSE.NO)
+							ping.no_count += 1;
+						else if (response === PING_RESPONSE.DEFFER)
+							ping.deferred.push(getUser(ping.available, respondeeId));
+
+						// everybody has replied to ping and no one has chosen YES
+						if (exhaustedAvailable(ping)) {
+							// some have chosen to defer
+							if (ping.deferred.length && !ping.isDeferred) {
+								pingDeferred(ping, payload, res);
+							}
+							// no one has chosen to defer
+							else {
+								payload.data.message.type = 'response';
+								payload.data.message.user = req.user;
+
+								androidApp
+								.sendMessageAsync(ping.getPatient().sns_id, payload)
+								.then(function() {
+									delete payload.data.message.user;
+
+									pingPrimary(ping, payload, res);
+								})
+								.catch(function() {
+									console.log('an error occured while trying to ping group');
+									console.log(arguments);
+
+									res.status(500).json({});
+								});
+							}
 						}
+						// not everybody has responded to ping
 						else {
-							res.status(200).json({});
-						}
-					});
+							ping.save(function(err, ping) {
+								if (err) {
+									console.log(err);
+									res.status(500).json({});
+								}
+								else {
+									res.status(200).json({});
+								}
+							});
 						}
 					}
 				}
-		});
+			});
 		}
 	});
 };
