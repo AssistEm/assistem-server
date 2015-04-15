@@ -226,14 +226,13 @@ exports.initiatePing = function(req, res, next) {
 			};
 
 			pingBody.patient_name = community.patient.getFullName();
+			pingBody.patient_phone = community.patient.getPhone();
 
 			availUsers = community.caretakers
 				.filter(availableUsers(dateOfPing))
 				.map(pingAddress);
 
 			if (availUsers.length === 0) {
-				console.log('no one available, sending to primary');
-
 				payload.data.message.type = 'response';
 				payload.data.message.user = req.user;
 
