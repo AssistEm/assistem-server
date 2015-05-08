@@ -3,6 +3,14 @@ var Grocery = require('./grocery/grocery.model');
 var mongoose = require('mongoose');
 var _ = require('lodash');
 
+
+/**
+ * Handles Validation errors and general errors thrown by the controller
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  err  The error thrown by the controller
+ * @return      The 422, 409, or 500 response
+ */
 function errorHandler(res, err, payload) {
 	if (err.name === 'ValidationError') {
 		res.status(422).json(err);
@@ -15,8 +23,12 @@ function errorHandler(res, err, payload) {
 	}
 }
 
-/*
- * Get list of all communities
+/**
+ * Gets a list of all the communities
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with the proper communities attached
  */
 exports.index = function(req, res) {
 	Community.find({}, function(err, communities) {
@@ -28,8 +40,12 @@ exports.index = function(req, res) {
 	});
 };
 
-/*
- * Get a community of a specific user
+/**
+ * Gets the communities of a specific user
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with the proper communities attached
  */
 exports.myCommunities = function(req, res) {
 	var user = req.user;
@@ -49,8 +65,13 @@ exports.myCommunities = function(req, res) {
 	});
 };
 
-/*
- * Create a community
+/**
+ * Creates a community
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The response with new community attached
  */
 module.exports.createCommunity = function(req, res, next) {
 	var b = req.body;
@@ -101,6 +122,12 @@ module.exports.createCommunity = function(req, res, next) {
 		}
 	});
 
+	/**
+	 * Saves a grocery list to a community
+	 *
+	 * @param  community  The community to save the grocery list to
+	 * @return            VOID (saves the community)
+	 */
 	function saveGroceryList(community) {
 		groceryListToSave.save(function(err, savedGroceryList) {
 			if (err) {
@@ -118,6 +145,13 @@ module.exports.createCommunity = function(req, res, next) {
 		});
 	}
 
+	/**
+	 * Saves a user or grocery list in the community
+	 *
+	 * @param  community    The community of the user to save
+	 * @param  groceryList  The grocery list to save
+	 * @return              VOID (saves the community)
+	 */
 	function saveUser(community, groceryList) {
 		userToSave.save(function(err, user) {
 			if (err) {
@@ -149,8 +183,13 @@ module.exports.createCommunity = function(req, res, next) {
 	}
 };
 
-/*
- * Update a community
+/**
+ * Updates a community
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The response with the proper communities attached
  */
 exports.update = function(req, res, next) {
 	var communityId = req.params.id;
@@ -178,8 +217,12 @@ exports.update = function(req, res, next) {
 	});
 };
 
-/*
- * Delete a community
+/**
+ * Deletes a specific community.
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      A 500, 404, or 204 response whether the delete was successful
  */
 exports.delete = function(req, res) {
 	var communityId = req.params.id;

@@ -5,6 +5,14 @@ var config = require('../../config/environment');
 var auth = require('../../auth/auth.service');
 var _ = require('lodash');
 
+
+/**
+ * Handles all the validation errors thrown by the controller
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The 409 or 422 response associated with the error thrown
+ */
 var validationError = function(res, err) {
 	if (err.code === 11000) {
 		// Duplicate user
@@ -14,8 +22,13 @@ var validationError = function(res, err) {
 	return res.status(422).json(err);
 };
 
-/*
- * User login
+/**
+ * Logs a user into the application
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The user object with the associated authentication token and community
  */
 exports.login = function(req, res, next) {
 	passport.authenticate('local', function(err, user, info) {
@@ -50,8 +63,12 @@ exports.login = function(req, res, next) {
 	})(req, res, next);
 };
 
-/*
- * Get list of useres
+/**
+ * Gets a list of names of all users
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with the list of users attached
  */
 exports.index = function(req, res) {
 	User.find({}, '-login_info.password', function(err, users) {
@@ -63,8 +80,13 @@ exports.index = function(req, res) {
 	});
 };
 
-/*
- * Create a new user
+/**
+ * Creates a new user
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The response with the new user object in it
  */
 exports.create = function(req, res, next) {
 	var b = req.body;
@@ -153,8 +175,13 @@ exports.create = function(req, res, next) {
 	}
 };
 
-/*
- * Get a single user
+/**
+ * Gets a single user object
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The response with the proper user object attached
  */
 exports.show = function(req, res, next) {
 	var userId = req.params.id;
@@ -174,8 +201,13 @@ exports.show = function(req, res, next) {
 	});
 };
 
-/*
- * Delete a user
+/**
+ * Deletes a user from the database
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The 500 or 204 response of if the user is deleted successfully
  */
 exports.destroy = function(req, res) {
 	var userId = req.params.id;
@@ -189,8 +221,13 @@ exports.destroy = function(req, res) {
 	});
 };
 
-/*
- * Change a users password
+/**
+ * Changes the password for a user
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The 403 or 200 response depending on the success of changing the password
  */
 exports.changePassword = function(req, res, next) {
 	var userId = req.user._id;
@@ -220,8 +257,13 @@ exports.changePassword = function(req, res, next) {
 	});
 };
 
-/*
- * Change a users settings
+/**
+ * Change the User Settings
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The 409 or 200 response depending on success of changing the user settings
  */
 exports.changeSettings = function(req, res, next) {
 	var userId = req.user._id;
@@ -237,8 +279,13 @@ exports.changeSettings = function(req, res, next) {
 	});
 };
 
-/*
- * Get my info
+/**
+ * Gets the information of a user
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The user object associated with the user id.
  */
 exports.me = function(req, res, next) {
 	var userId = req.user._id;

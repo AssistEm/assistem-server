@@ -1,8 +1,8 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
-/*
- * Schema definition
+/**
+ * The Community Schema Definition
  */
 var communitySchema = new Schema({
 	name: {

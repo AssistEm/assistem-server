@@ -105,13 +105,8 @@ UserSchema.virtual('password').set(function(password) {
 /*
  * Pre-save hook
  */
-
 UserSchema.pre('save', function(next) {
 	var user = this;
-
-	// if(!user.isModified('login_info.password')) {
-	// 	return next();
-	// }
 
 	bcrypt.genSalt(10, function(err, salt) {
 		if (err) {
@@ -130,10 +125,13 @@ UserSchema.pre('save', function(next) {
 	});
 });
 
-/*
- * Methods
+/**
+ * Verifies the client passed the correct password for the user
+ *
+ * @param  password  The password to check
+ * @param  callback  The callback function that will be called after this
+ * @return           The return of the callback function
  */
-
 UserSchema.methods.verifyPassword = function(password, callback) {
 	var hash = this.login_info.password;
 
