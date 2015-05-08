@@ -6,6 +6,7 @@ var auth = require('../../../auth/auth.service');
 //Ping
 var router = express.Router();
 
+
 //Middleware
 router.use(auth.isAuthenticated);
 
@@ -14,5 +15,11 @@ router.post('/', controller.initiatePing);
 router.put('/:ping_id', controller.respondPing);
 
 
-module.exports = router;
+/*router.use(function(err, req, res, next) {
+	console.error('router specific error handler');
+	console.error(err.stack);
+	res.status(500).send('Something broke!');
+});*/
 
+
+module.exports = router;

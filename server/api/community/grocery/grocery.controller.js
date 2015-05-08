@@ -5,19 +5,22 @@ var fuzzy = require('fuzzy');
 exports.attachGroceryList = function(req, res, next) {
 	var grocery_id = req.community.grocery_list_id;
 
-	Grocery.findOne({'_id' : grocery_id}, function(err, grocery_list){
-		if(err){
-			console.log("ERR = " + err);
+	Grocery
+		.findOne({'_id' : grocery_id})
+		.populate('item_list.volunteer.volunteer_id', '-login_info.password')
+		.exec(function(err, grocery_list) {
+			if(err){
+				console.log("ERR = " + err);
 
-			res
-			.status(500)
-			.json({msg: "fatal error, community does not have attached grocery list"});
-		}
-		else {
-			req.grocery_list = grocery_list;
-			next();
-		}
-	});
+				res
+				.status(500)
+				.json({msg: "fatal error, community does not have attached grocery list"});
+			}
+			else {
+				req.grocery_list = grocery_list;
+				next();
+			}
+		});
 };
 
 /*
@@ -31,6 +34,8 @@ exports.index = function(req, res) {
 
 	console.log("here is the list");
 	console.log(item_list);
+
+	console.log(req.grocery_list);
 
 	for (var i = 0; i < item_list.length; i++) {
 		var item = item_list[i];
@@ -132,7 +137,7 @@ exports.volunteerItem = function(req, res) {
 		if (item.volunteer && item.volunteer.volunteer_id) { // already a volunteer
 			// only patients should get these messages because
 			// caretakers will get list of un-volunteered for items
-			if (!item.volunteer.volunteer_id.equals(req.user._id)) { // req.user !== item.volunteer
+			if (!item.volunteer.volunteer_id._id.equals(req.user._id)) { // req.user !== item.volunteer
 				res.status(403).json({msg: "someone already volunteering for item"});
 			}
 			else {
@@ -147,7 +152,7 @@ exports.volunteerItem = function(req, res) {
 	}
 	else { // attemtping to un-volunteer
 		if (item.volunteer && item.volunteer.volunteer_id) { // already a volunteer
-			if (!item.volunteer.volunteer_id.equals(req.user._id)) { // req.user !== item.volunteer
+			if (!item.volunteer.volunteer_id._id.equals(req.user._id)) { // req.user !== item.volunteer
 				res.status(403).json({msg: "you can only un-volunteer yourself"});
 			}
 			else {

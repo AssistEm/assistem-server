@@ -1,9 +1,46 @@
 var User = require('./user.model');
 var Community = require('../community/community.model');
 var passport = require('passport');
-var config = require('../../config/environment');
 var auth = require('../../auth/auth.service');
+var moment = require('moment');
 var _ = require('lodash');
+var secrets = require('../community/ping/secrets');
+var SNS = require('sns-mobile');
+var Promise = require('bluebird');
+
+Promise.promisifyAll(User);
+Promise.promisifyAll(User.prototype);
+
+var androidApp = new SNS({
+  platform: SNS.SUPPORTED_PLATFORMS.ANDROID,
+  region: 'us-west-2',
+  apiVersion: '2010-03-31',
+  accessKeyId: secrets.SNS_KEY_ID,
+  secretAccessKey: secrets.SNS_ACCESS_KEY,
+  platformApplicationArn: secrets.SNS_ANDROID_ARN
+});
+
+Promise.promisifyAll(androidApp);
+
+//Registers a mobile client (android)
+exports.register = function(req, res, next) {
+	var deviceId = req.body.deviceId;
+	console.log('Registering android device with id: ' + deviceId);
+
+	androidApp
+	.addUserAsync(deviceId, null)
+	.then(function(endpointArn) {
+		return req.user.updateAsync({$set: {'login_info.endpoint_arn': endpointArn}});
+	})
+	.then(function() {
+		res.status(200).json({});
+	})
+	.catch(function(err) {
+		console.log(err);
+		res.status(500).json(err);
+	});
+};
+
 
 
 /**
@@ -257,6 +294,7 @@ exports.changePassword = function(req, res, next) {
 	});
 };
 
+<<<<<<< HEAD
 /**
  * Change the User Settings
  *
@@ -267,16 +305,45 @@ exports.changePassword = function(req, res, next) {
  */
 exports.changeSettings = function(req, res, next) {
 	var userId = req.user._id;
-	var updated_info = req.body;
-	
-	User.update({ '_id' : userId}, updated_info, function(err) {
+	var updates = [];
+	var query, tmp;
+
+	if (req.body.caretaker_info.availability) {
+		tmp = req.body.caretaker_info.availability;
+		//var update = { $push: { 'caretaker_info.availability': { $each: tmp } } };
+		var update = {$set: {'caretaker_info.availability': tmp}};
+
+		updates.push(User.updateAsync({_id: userId}, update));
+	}
+
+	delete req.body.caretaker_info.availability;
+	updates.push(User.updateAsync({_id: userId}, {$set: transformUpdates(req.body)}));
+
+	Promise.all(updates).then(function() {
+		console.log(arguments);
+		res.status(200).json({});
+	});
+
+	/*console.log(JSON.stringify(updates));
+
+	User.update({_id: userId}, {$set: updates}, function(err) {
+		if (err) {
+			console.log(err);
+			res.status(500).send(err);
+		}
+		else {
+			res.status(200).json({});
+		}
+	});*/
+
+	/*User.update({ '_id' : userId}, updated_info, function(err) {
 		if (err) {
 			console.log('err = ' + err);
 			return res.status(409).send(err);
 		}
 
-		res.sendStatus(200);
-	});
+		res.status(200).json({});
+	});*/
 };
 
 /**
@@ -302,5 +369,89 @@ exports.me = function(req, res, next) {
 		}
 
 		res.json(user);
+	});
+};
+
+exports.setAvailability = function(req, res) {
+	var isAvailable = req.body.is_available;
+	var duration = req.body.duration;
+
+	User
+	.update(
+		{_id: req.user._id},
+		{$set: {'caretaker_info.global_availability': isAvailable}}
+	)
+	.exec(function(err, user) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			if (duration) {
+				var resetDate = moment().add(moment.duration(duration, 'hours'));
+				req.app.get('agenda').schedule(
+					resetDate.toDate(), 'reset availability', {userId: req.user._id}
+				);
+			}
+
+			res.status(200).json({});
+		}
+	});
+};
+
+exports.getAvailability = function(req, res) {
+	User
+	.findOne({_id: req.user._id})
+	.select('caretaker_info.global_availability')
+	.exec(function(err, user) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			res.status(200).json({is_available: user.caretaker_info.global_availability});
+		}
+	});
+};
+
+exports.updateAvailability = function(req, res) {
+	var availabilityId = req.params.availability_id;
+	req.body._id = availabilityId;
+
+	User
+	.update(
+		{
+			_id: req.user._id,
+			'caretaker_info.availability._id': availabilityId
+		},
+		{$set: {'caretaker_info.availability.$': req.body}},
+		function(err, numAffected) {
+			if (err) {
+				console.log(err);
+				res.status(500).json(err);
+			}
+			else {
+				res.status(200).json({});
+			}
+	});
+};
+
+exports.removeAvailability = function(req, res) {
+	var availabilityId = req.params.availability_id;
+
+	req.user.caretaker_info.availability.pull({_id: availabilityId});
+
+	req
+	.user
+	.update(
+		{'caretaker_info.availability': req.user.caretaker_info.availability},
+		function(err, numAffected) {
+			if (err) {
+				console.log(err);
+				res.status(500).json(err);
+			}
+			else {
+				res.status(204).json({});
+			}
 	});
 };
