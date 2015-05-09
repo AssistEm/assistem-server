@@ -22,7 +22,12 @@ router.put(
 router.get(
 	'/me/available',
 	auth.isAuthenticated,
-	controller.getAvailability
+	controller.getGlobalAvailability
+);
+router.get(
+	'/me/scheduleavailability',
+	auth.isAuthenticated,
+	controller.getScheduledAvailability
 );
 router.post(
 	'/me/available/:availability_id',

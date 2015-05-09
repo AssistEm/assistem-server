@@ -294,7 +294,65 @@ exports.changePassword = function(req, res, next) {
 	});
 };
 
-<<<<<<< HEAD
+/**
+ * Transform object with nested keys into object with flat keys to facilitate
+ * updates using mongo update with $set operator
+ *
+ * @param  obj  Object sent from client with updates to document on database
+ * @example
+ * // returns {'foo': 1, 'bar.fizz.buzz': 2}
+ * transformUpdates({foo: 1, bar: {fizz: {buzz: 2}}})
+ * @return      Object with flat keys
+ */
+function transformUpdates(obj) {
+	function bar1(prnt, sub_o) {
+		if (typeof sub_o !== 'object' || sub_o.constructor === Array)
+			return prnt;
+
+		var res = [];
+
+		for (var s_key in sub_o) {
+			var egg = bar1(s_key, sub_o[s_key]);
+
+			if (egg.constructor === Array) {
+				bar1(s_key, sub_o[s_key]).map(function(path) {
+					res.push(prnt + '.' + path);
+				});
+			}
+			else
+				res.push(prnt + '.' + bar1(s_key, sub_o[s_key]));
+		}
+
+		return res;
+	}
+
+	function bar2(path, obj) {
+		var cpv = obj[path.split('.').shift()];
+
+		if (typeof cpv !== 'object' || cpv.constructor === Array)
+			return cpv;
+
+		var np = path.split('.').splice(1, path.length).join('.');
+		return bar2(np, cpv);
+	}
+
+	var res = {};
+
+	for (var fld in obj) {
+		var val = obj[fld];
+
+		if (typeof val === 'object' && val.constructor !== Array) {
+			bar1(fld, val).map(function(path) {
+				res[path] = bar2(path, obj);
+			});
+		}
+		else
+			res[fld] = val;
+	}
+
+	return res;
+}
+
 /**
  * Change the User Settings
  *
@@ -399,7 +457,29 @@ exports.setAvailability = function(req, res) {
 	});
 };
 
-exports.getAvailability = function(req, res) {
+exports.getScheduledAvailability = function(req, res) {
+	User
+	.findOne({_id: req.user._id})
+	.select('caretaker_info.availability')
+	.exec(function(err, user) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else if (!user) {
+			res.status(404).json({});
+		}
+		else {
+			var payload = {
+				is_available: user.isAvailableSchedule(moment.utc())
+			};
+
+			res.status(200).json(payload);
+		}
+	});
+};
+
+exports.getGlobalAvailability = function(req, res) {
 	User
 	.findOne({_id: req.user._id})
 	.select('caretaker_info.global_availability')
@@ -408,8 +488,15 @@ exports.getAvailability = function(req, res) {
 			console.log(err);
 			res.status(500).json(err);
 		}
+		else if (!user) {
+			res.status(404).json({});
+		}
 		else {
-			res.status(200).json({is_available: user.caretaker_info.global_availability});
+			var payload = {
+				is_available: user.isAvailableGlobal()
+			};
+
+			res.status(200).json(payload);
 		}
 	});
 };

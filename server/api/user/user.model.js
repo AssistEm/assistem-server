@@ -2,7 +2,8 @@ var mongoose = require('mongoose');
 var bcrypt = require('bcrypt');
 var Schema = mongoose.Schema;
 var validate = require('mongoose-validator');
-var isPhone =require('is-phone'); // simple library, maybe build custom or use better later
+var isPhone = require('is-phone'); // simple library, maybe build custom or use better later
+var moment = require('moment');
 
 /*
  * Validations
@@ -156,6 +157,59 @@ UserSchema.methods.getFullName = function() {
 
 UserSchema.methods.getPhone = function() {
 	return this.phone;
+};
+
+UserSchema.methods.isAvailableGlobal = function(dateOfPing) {
+	return this.caretaker_info.global_availability;
+};
+
+UserSchema.methods.isAvailableSchedule = function(dateOfPing) {
+	var dayOfWeek;
+
+	var curAvail = this.caretaker_info.availability;
+
+	// has not set availability times
+	if (!curAvail) return false;
+
+	dayOfWeek = dateOfPing.day();
+
+	for (var i = 0; i < curAvail.length; i++) {
+		var av = curAvail[i];
+
+		var avsm = moment.utc(av.start.time);
+		var avem = moment.utc(av.end.time);
+
+		var startBool;
+		var endBool;
+
+		if (avsm.hour() < dateOfPing.hour())
+			startBool = true;
+		else if (avsm.hour() === dateOfPing.hour() && avsm.minute() <= dateOfPing.minute())
+			startBool = true;
+		else
+			startBool = false;
+
+		if (avem.hour() > dateOfPing.hour())
+			endBool = true;
+		else if (avem.hour() === dateOfPing.hour() && avem.minute() >= dateOfPing.minute())
+			endBool = true;
+		else
+			endBool = false;
+
+		var timeBool = startBool && endBool;
+		var DayBool = av.start.day_of_week >= dayOfWeek && av.end.day_of_week <= dayOfWeek;
+
+		if (timeBool && DayBool) return true;
+	}
+
+	return false;
+};
+
+UserSchema.methods.isAvailable = function(dateOfPing) {
+	// has no registered device
+	if (!this.login_info.endpoint_arn) return false;
+
+	return this.isAvailableGlobal() || this.isAvailableSchedule(dateOfPing);
 };
 
 module.exports = mongoose.model('User', UserSchema);

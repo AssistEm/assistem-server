@@ -4,6 +4,13 @@ var moment = require('moment');
 var _ = require('lodash');
 var Promise = require('bluebird');
 
+/**
+ * Gets an array of event objects
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      an array of objects representing selected events
+ */
 exports.index = function(req, res) {
 	// var date = new Date();
 	// var month, day;
@@ -84,6 +91,13 @@ exports.index = function(req, res) {
 	// 	});
 };
 
+/**
+ * Creates a new event
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with the new event object in an array
+ */
 exports.create = function(req, res) {
 	var b = req.body;
 	var newEvent = null;
@@ -175,10 +189,15 @@ exports.create = function(req, res) {
 	}
 };
 
-// update single event or event from group
-// single: just update single event
-// group: either update all in group, selected event and newer, only selected
-// event (in which case we remove from group)
+/**
+ * Updates selected evens. Single or group. If single, just update single. If
+ * group, either update all in group, selected event and new, only selected
+ * event (in which case we remove from group)
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with an array of the updated events
+ */
 exports.update = function(req, res) {
 	var b = _.clone(req.body, true);
 
@@ -280,8 +299,13 @@ exports.update = function(req, res) {
 		}
 	});
 };
-/*
+
+/**
  * Deletes an event from a community or a group of events in the future
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      A status code of 204 when successfully deleted
  */
 exports.delete = function(req, res) {
 	var delete_repeating = req.query.delete_repeating;
@@ -341,8 +365,13 @@ exports.delete = function(req, res) {
 
 };
 
-/*
+/**
  * Volunteer for an event
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      A status code representing the success of the request to
+ * change volunteer status
  */
 exports.volunteer = function(req, res) {
 	var b = req.body;

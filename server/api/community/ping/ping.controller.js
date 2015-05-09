@@ -11,8 +11,6 @@ var Ping = require('./ping.model');
 Promise.promisifyAll(Ping);
 Promise.promisifyAll(Ping.prototype);
 
-// response to volunteer is patient anme and phone number
-
 /**
  * Enum for a ping response
  * @readonly
@@ -55,7 +53,6 @@ androidApp.on('sendFailed', function(endpointArn, err) {
 
 
 // helper functions
-// TODO: change to extractUser
 function extractUser(group, volunteer) {
 	for (var i = 0; i < group.length; i++) {
 		if (group[i].app_id.equals(volunteer))
@@ -64,7 +61,6 @@ function extractUser(group, volunteer) {
 }
 
 
-// TODO: change to getUser
 function getUser(group, user_id) {
 	for (var i = 0; i < group.length; i++) {
 		if (group[i].app_id.equals(user_id))
@@ -75,11 +71,16 @@ function getUser(group, user_id) {
 
 /*
  * Check a users availability based on their settings.
+ *
  * @param {String} ping An ISO 8601 UTC formatted string
  * @param user an object returned from mongoose js
  */
 function availableUsers(dateOfPing) {
 	return function(user) {
+		return user.isAvailable(dateOfPing);
+	};
+
+	/*return function(user) {
 		var dayOfWeek;
 
 		// has no registered device
@@ -125,12 +126,13 @@ function availableUsers(dateOfPing) {
 		}
 
 		return false;
-	};
+	};*/
 }
 
 
 /**
  * Maps a user object into smaller object with required info to ping devices
+ *
  * @param user an object returned from mongoose js
  */
 function pingAddress(user) {
@@ -140,6 +142,7 @@ function pingAddress(user) {
 
 /**
  * Asynchronously send messages to group of caretakers
+ *
  * @param group array of objects with field 'sns_id' as amazon aws sns arn
  * @param payload object being sent as JSON to caretakers as ping response
  * @param payload.message string human readable message sent to each caretaker
@@ -155,7 +158,14 @@ function sendPings(group, payload) {
 	return Promise.all(msgs);
 }
 
-
+/**
+ * Ping the primary caretaker
+ *
+ * @param ping ping object
+ * @param payload object being sent as JSON to caretakers as ping response
+ * @param res express response object
+ * @returns {Array} an array of promises to send message to caretakers
+ */
 function pingPrimary(ping, payload, res) {
 	payload.data.message.type = 'primary';
 
@@ -173,11 +183,24 @@ function pingPrimary(ping, payload, res) {
 }
 
 
+/**
+ * Check if exhausted the list of available caretakers in ping
+ *
+ * @param ping ping object
+ * @returns Boolean
+ */
 function exhaustedAvailable(ping) {
 	return ping.no_count + ping.deferred.length === ping.available.length;
 }
 
 
+/**
+ * Ping the caretakers who deffered on current ping
+ *
+ * @param ping ping object
+ * @param payload object being sent as JSON to caretakers as ping response
+ * @param res express response object
+ */
 function pingDeferred(ping, payload, res) {
 	ping.available = ping.deferred;
 	ping.isDeferred = true;
@@ -200,9 +223,16 @@ function pingDeferred(ping, payload, res) {
 }
 
 
-//Initiates a ping sent out to all the correct caretakers
+/**
+ * Initiates a ping sent out to all the correct caretakers
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      Status code representing the success of initiating a ping
+ */
 exports.initiatePing = function(req, res, next) {
-	//if (req.user.type !== 'patient') return res.status(403).json({});
+	if (req.user.type !== 'patient') return res.status(403).json({});
 
 	var pingBody = req.body;
 
@@ -227,10 +257,13 @@ exports.initiatePing = function(req, res, next) {
 
 			pingBody.patient_name = community.patient.getFullName();
 			pingBody.patient_phone = community.patient.getPhone();
+			pingBody.time = dateOfPing.toDate();
 
 			availUsers = community.caretakers
 				.filter(availableUsers(dateOfPing))
 				.map(pingAddress);
+
+			console.log(availUsers);
 
 			if (availUsers.length === 0) {
 				payload.data.message.type = 'response';
@@ -240,6 +273,7 @@ exports.initiatePing = function(req, res, next) {
 				.sendMessageAsync(community.patient.login_info.endpoint_arn, payload)
 				.then(function() {
 					delete payload.data.message.user;
+					payload.data.message.type = 'primary';
 
 					return androidApp.sendMessageAsync(
 						community.primary_caretaker.login_info.endpoint_arn, payload
@@ -260,7 +294,7 @@ exports.initiatePing = function(req, res, next) {
 					title: pingBody.title,
 					location: pingBody.location,
 					description: pingBody.description,
-					time: pingBody.time || moment.utc().toDate(),
+					time: pingBody.time,
 					available: availUsers,
 					patient: [{
 						app_id: community.patient._id,
@@ -277,6 +311,7 @@ exports.initiatePing = function(req, res, next) {
 				ping
 				.saveAsync()
 				.then(function() {
+					console.log('pinging users');
 					return sendPings(availUsers, payload);
 				})
 				.then(function() {
@@ -339,7 +374,14 @@ function cleanPing(ping) {
 	return o;
 }
 
-//Responds to a ping from the correct caretaker
+/**
+ * Responds to a ping from the correct caretaker
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      Status code representing the success of responding to a ping
+ */
 exports.respondPing = function(req, res, next) {
 	var respondeeId = req.user._id;
 	var response = req.body.response;
@@ -391,6 +433,7 @@ exports.respondPing = function(req, res, next) {
 					};
 
 					payload.data.message.ping.patient_name = patient.getFullName();
+					payload.data.message.ping.patient_phone = patient.getPhone();
 
 					if (response === PING_RESPONSE.YES) {
 						var volunteer = extractUser(ping.available, respondeeId);
@@ -411,7 +454,6 @@ exports.respondPing = function(req, res, next) {
 						})
 						.then(function(removedPing) {
 						// respond to volunteer that they have successfully volunteered
-							payload.data.message.ping.patient_phone = patient.getPhone();
 
 							res.status(200).json(payload);
 						})

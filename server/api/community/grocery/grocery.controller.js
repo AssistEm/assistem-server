@@ -2,6 +2,13 @@ var Grocery = require('./grocery.model');
 var moment = require('moment');
 var fuzzy = require('fuzzy');
 
+/**
+ * Attach the grocery list associated with the community to the req object
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ */
 exports.attachGroceryList = function(req, res, next) {
 	var grocery_id = req.community.grocery_list_id;
 
@@ -23,19 +30,17 @@ exports.attachGroceryList = function(req, res, next) {
 		});
 };
 
-/*
- * Function that takes the title(optional) or location(optional)
- * and returns the grocery list items that match
+/**
+ * Query for items from the grocery list
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      An array with the matched grocery list items
  */
 exports.index = function(req, res) {
 	var b = req.body;
 	var result = [];
 	var item_list = req.grocery_list.item_list;
-
-	console.log("here is the list");
-	console.log(item_list);
-
-	console.log(req.grocery_list);
 
 	for (var i = 0; i < item_list.length; i++) {
 		var item = item_list[i];
@@ -44,9 +49,6 @@ exports.index = function(req, res) {
 			result.push(item._id);
 		}
 	}
-
-	console.log("here is the result");
-	console.log(result);
 
 	res.json(item_list);
 
@@ -68,12 +70,15 @@ exports.index = function(req, res) {
 
 };
 
-/*
+/**
  * Function that takes the optional grocery item properties,
  * creates a grocery item, and returns the list with the new item.
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      An array with an object representing the added item
  */
 exports.addItem = function(req, res) {
-	// JSON: {title:String, description:String, location:String, quantity:String, urgency:Date(PASS AS STRING)}
 	var b = req.body;
 	var grocery_id = req.community.grocery_list_id;
 	var grocery_list = req.grocery_list;
@@ -90,9 +95,13 @@ exports.addItem = function(req, res) {
 };
 
 
-/*
+/**
  * Function that takes all the grocery item attributes as optional,
- * updates the grocery_list item elements, and returns the updated list (nothing).
+ * updates the grocery_list item elements, and returns the updated list.
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      An array with an objects representing the updated items
  */
 exports.updateItem = function(req, res) {
 	var b = req.body;
@@ -103,12 +112,10 @@ exports.updateItem = function(req, res) {
 	var item_id = req.params.item_id;
 	
 	var item = grocery_list.item_list.id(item_id);
-	console.log(b);
 	for(var eachNewAttr in b)
 	{
 		item[eachNewAttr] = b[eachNewAttr];
 	}
-	console.log(item);
 
 	grocery_list.save(function(err, saved){
 		if(err){
@@ -121,9 +128,13 @@ exports.updateItem = function(req, res) {
 
 };
 
-/*
+/**
  * Function that volunteers or un-volunteers a user for an item in a grocery
  * list.
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      Status code representing the success of volunteer request
  */
 exports.volunteerItem = function(req, res) {
 	var b = req.body;
@@ -177,9 +188,13 @@ exports.volunteerItem = function(req, res) {
 	}
 };
 
-/*
+/**
  * Function that takes no arguments (the id of the item is in the url),
  * deletes the item from the list and returns 204 (nothing).
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      Status code representing the success of deleting a grocery item
  */
 exports.deleteItem = function(req, res) {
 	grocery_item_id = req.params.item_id;
@@ -210,11 +225,15 @@ exports.deleteItem = function(req, res) {
 	}
 };
 
-/*
+/**
  * Function that takes the URL PARAM search and does a fuzzy search on the
  * community's item_list for an item with its title property matching the
  * search string. Returns all the items in the item_list if no search URL
  * PARAM is specified
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      An array of strings representing names of items matched to query
  */
 exports.autocompleteItem = function(req, res) {
 	var search = req.query.search || '';
