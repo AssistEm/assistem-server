@@ -18,6 +18,10 @@ Before you attempt to build and run make sure to install [node.js](http://nodejs
     $ npm install
     $ bower install
 
+To start the database:
+
+    $ mongod
+
 To start the server run:
 
     $ node server/app.js
