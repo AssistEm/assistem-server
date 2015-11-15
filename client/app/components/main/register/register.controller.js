@@ -4,7 +4,6 @@ angular.module('caretakerApp')
 		var User = $resource('/api/user/:id');
 
 		$scope.submit = function(form) {
-			console.log(form);
 			var user = new User(form);
 			user.$save(function() {
 				$state.go('home');

@@ -18,7 +18,7 @@ var validationError = function(res, err) {
  * User login
  */
 exports.login = function(req, res, next) {
-	console.log(req);
+	console.log(req.body);
 	passport.authenticate('local', function(err, user, info) {
 		if (err) {
 			return res.status(401).json(err);
@@ -68,8 +68,8 @@ exports.index = function(req, res) {
  * Create a new user
  */
 exports.create = function(req, res, next) {
-	var userData = req.body;
-	var communityData = userData.community;
+	var userData = req.body.user;
+	var communityData = req.body.community;
 
 	// check the type of the new user
 	if (userData.type.toLowerCase() === 'caretaker') { // caretaker
