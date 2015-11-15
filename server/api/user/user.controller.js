@@ -18,6 +18,7 @@ var validationError = function(res, err) {
  * User login
  */
 exports.login = function(req, res, next) {
+	console.log(req);
 	passport.authenticate('local', function(err, user, info) {
 		if (err) {
 			return res.status(401).json(err);
@@ -67,15 +68,14 @@ exports.index = function(req, res) {
  * Create a new user
  */
 exports.create = function(req, res, next) {
-	var b = req.body;
-	var userData = b.user;
-	var communityData = b.community;
+	var userData = req.body;
+	var communityData = userData.community;
 
 	// check the type of the new user
 	if (userData.type.toLowerCase() === 'caretaker') { // caretaker
-		var isEmail = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/.test(communityData.query);
+		var isEmail = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/.test(communityData);
 		var query = (isEmail ?
-			{'login_info.email': communityData.query} : {name: communityData.query});
+			{'login_info.email': communityData} : {name: communityData});
 		
 		// quer: emai, search for patient -> community
 		if (isEmail) {
