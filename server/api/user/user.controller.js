@@ -70,7 +70,9 @@ exports.index = function(req, res) {
 exports.create = function(req, res, next) {
 	var b = req.body;
 	var userData = b.user;
- 	var communityData = b.community;
+ 	var communityData = b.community.query;
+
+ 	// console.log(userData);
 
 	// check the type of the new user
 	if (userData.type.toLowerCase() === 'caretaker') { // caretaker
