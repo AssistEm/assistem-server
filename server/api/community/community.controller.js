@@ -58,6 +58,7 @@ module.exports.createCommunity = function(req, res, next) {
 	var communityData = b.community;
 
 	var communityToSave = null;
+	var groceryList;
 	var userToSave = res.locals.user;
 
 	if (userData.type.toLowerCase() === 'caretaker') {
