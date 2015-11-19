@@ -68,8 +68,9 @@ exports.index = function(req, res) {
  * Create a new user
  */
 exports.create = function(req, res, next) {
-	var userData = req.body.user;
-	var communityData = req.body.community;
+	var b = req.body;
+	var userData = b.user;
+ 	var communityData = b.community;
 
 	// check the type of the new user
 	if (userData.type.toLowerCase() === 'caretaker') { // caretaker
