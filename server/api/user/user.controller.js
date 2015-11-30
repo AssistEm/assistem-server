@@ -18,7 +18,6 @@ var validationError = function(res, err) {
  * User login
  */
 exports.login = function(req, res, next) {
-	console.log(req);
 	passport.authenticate('local', function(err, user, info) {
 		if (err) {
 			return res.status(401).json(err);
@@ -68,10 +67,9 @@ exports.index = function(req, res) {
  * Create a new user
  */
 exports.create = function(req, res, next) {
-
 	var b = req.body;
-	var userData = b.user;
- 	var communityData = b.community;
+	var userData = b.user ? b.user : b;
+ 	var communityData = b.community ? b.community.query : 'default';
 
 	// check the type of the new user
 	if (userData.type.toLowerCase() === 'caretaker') { // caretaker
@@ -144,6 +142,7 @@ exports.create = function(req, res, next) {
 		}
 	} else { // patient
 		var newPatient = _.merge(new User(), userData);
+		console.log(newPatient);
 
 		res.locals.user = newPatient;
 		var payload = {
