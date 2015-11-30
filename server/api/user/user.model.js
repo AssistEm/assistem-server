@@ -47,8 +47,8 @@ var UserSchema = new Schema({
 	},
 	phone: {
 		type: String,
-		required: true,
-		validate: phoneValidator
+		required: true
+		// validate: phoneValidator
 	},
 
 	login_info: {

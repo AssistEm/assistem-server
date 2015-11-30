@@ -54,8 +54,8 @@ exports.myCommunities = function(req, res) {
  */
 module.exports.createCommunity = function(req, res, next) {
 	var b = req.body;
-	var userData = b.user;
-	var communityData = b.community;
+	var userData = b.user ? b.user : b;
+ 	var communityData = b.community ? b.community.query : 'default';
 
 	var communityToSave = null;
 	var groceryList;

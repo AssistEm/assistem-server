@@ -5,6 +5,7 @@ angular.module('caretakerApp')
 
 		$scope.submit = function(form) {
 			var user = new User(form);
+			console.log(user);
 			user.$save(function() {
 				$state.go('home');
 			});
