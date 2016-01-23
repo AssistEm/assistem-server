@@ -11,6 +11,8 @@ var Promise = require('bluebird');
 Promise.promisifyAll(User);
 Promise.promisifyAll(User.prototype);
 
+console.log(secrets);
+
 var androidApp = new SNS({
   platform: SNS.SUPPORTED_PLATFORMS.ANDROID,
   region: 'us-west-2',
