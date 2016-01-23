@@ -1,6 +1,5 @@
 var SNS = require('sns-mobile');
 var moment = require('moment');
-var secrets = require('./secrets');
 var Promise = require('bluebird');
 
 var User = require('../../user/user.model');
@@ -26,9 +25,9 @@ var androidApp = new SNS({
   platform: SNS.SUPPORTED_PLATFORMS.ANDROID,
   region: 'us-west-2',
   apiVersion: '2010-03-31',
-  accessKeyId: secrets.SNS_KEY_ID,
-  secretAccessKey: secrets.SNS_ACCESS_KEY,
-  platformApplicationArn: secrets.SNS_ANDROID_ARN
+  accessKeyId: 'AKIAJDL2BFFCNQL7T32Q',
+  secretAccessKey: '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',
+  platformApplicationArn: "arn:aws:iam::316846284886:user/Hubert"
 });
 
 Promise.promisifyAll(androidApp);
