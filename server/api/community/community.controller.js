@@ -87,6 +87,18 @@ module.exports.createCommunity = function(req, res, next) {
 		communityToSave = res.locals.community;
 
 		communityToSave.caretakers.push(userToSave._id);
+
+		console.log("userToSave!!!!!!!");
+		console.log(userToSave);
+
+		// if it is the first caretaker to join the community,
+		// set him/her as the primary caretaker
+		if (communityToSave.caretakers.length === 1) {
+			communityToSave.update({primary_caretaker: userToSave._id});
+			console.log("COMMUNITY!!!!!!!!");
+			console.log(communityToSave);
+		}
+
 		userToSave.caretaker_info.communities.push(communityToSave._id);
 	}
 	else {
