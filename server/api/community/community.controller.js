@@ -94,9 +94,7 @@ module.exports.createCommunity = function(req, res, next) {
 		// if it is the first caretaker to join the community,
 		// set him/her as the primary caretaker
 		if (communityToSave.caretakers.length === 1) {
-			communityToSave.update({primary_caretaker: userToSave._id});
-			console.log("COMMUNITY!!!!!!!!");
-			console.log(communityToSave);
+			communityToSave.primary_caretaker = userToSave._id;
 		}
 
 		userToSave.caretaker_info.communities.push(communityToSave._id);
@@ -106,7 +104,7 @@ module.exports.createCommunity = function(req, res, next) {
 		communityToSave = _.merge(new Community(), communityData);
 
 		// create a new grocery list
-		groceryListToSave = new Grocery({community_id: communityToSave._id});
+		groceryListToSave =  new Grocery({community_id: communityToSave._id});
 		communityToSave.grocery_list_id = groceryListToSave._id;
 
 		communityToSave.patient = userToSave._id;
