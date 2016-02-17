@@ -77,6 +77,7 @@ function getUser(group, user_id) {
  */
 function availableUsers(dateOfPing) {
 	return function(user) {
+		// return true;
 		return user.isAvailable(dateOfPing);
 	};
 
@@ -283,7 +284,7 @@ exports.initiatePing = function(req, res, next) {
 					res.status(200).json({});
 				})
 				.catch(function() {
-					console.log('an error occured while trying to ping group');
+					console.log('an error occured while trying to ping group availusers');
 					console.log(arguments);
 
 					res.status(500).json({});
@@ -458,7 +459,7 @@ exports.respondPing = function(req, res, next) {
 							res.status(200).json(payload);
 						})
 						.catch(function() {
-							console.log('an error occured while trying to ping group');
+							console.log('an error occured while trying to ping group pingresponseyes');
 							console.log(arguments);
 
 							res.status(500).json({});
@@ -489,7 +490,7 @@ exports.respondPing = function(req, res, next) {
 									pingPrimary(ping, payload, res);
 								})
 								.catch(function() {
-									console.log('an error occured while trying to ping group');
+									console.log('an error occured while trying to ping group defer no');
 									console.log(arguments);
 
 									res.status(500).json({});
