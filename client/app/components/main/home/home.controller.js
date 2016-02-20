@@ -4,8 +4,15 @@ angular.module('caretakerApp')
 		function($scope, $http, $window) {
 		$scope.message = '';
 		$scope.submit = function() {
+			console.log($scope.user);
 			$http
-			.post('api/user', $scope.user)
+			.post('api/user',{
+				user: $scope.user,
+				community: {
+					name: $scope.community,
+					privacy: false
+				}
+			})
 			.success(function(data, status, headers, config) {
 				console.log(data);
 				$window.sessionStorage.token = data.token;
