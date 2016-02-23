@@ -4,7 +4,8 @@ angular.module('caretakerApp')
 	$stateProvider
 		.state('home', {
 			url: '/',
-			templateUrl: '/app/components/main/home/home.html'
+			templateUrl: '/app/components/main/home/home.html',
+			controller: 'HomeCtrl'
 		})
 		.state('register', {
 			url: '/register',
@@ -13,6 +14,7 @@ angular.module('caretakerApp')
 		})
 		.state('login', {
 			url: '/login',
-			templateUrl: '/app/components/main/login/login.html'
+			templateUrl: '/app/components/main/login/login.html',
+			controller: 'LoginCtrl'
 		});
 });

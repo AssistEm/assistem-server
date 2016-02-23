@@ -1,10 +1,55 @@
 var User = require('./user.model');
 var Community = require('../community/community.model');
 var passport = require('passport');
-var config = require('../../config/environment');
 var auth = require('../../auth/auth.service');
+var moment = require('moment');
 var _ = require('lodash');
+var secrets = require('../community/ping/secrets');
+var SNS = require('sns-mobile');
+var Promise = require('bluebird');
 
+Promise.promisifyAll(User);
+Promise.promisifyAll(User.prototype);
+
+var androidApp = new SNS({
+  platform: SNS.SUPPORTED_PLATFORMS.ANDROID,
+  region: 'us-west-2',
+  apiVersion: '2010-03-31',
+  accessKeyId: secrets.SNS_KEY_ID,
+  secretAccessKey: secrets.SNS_ACCESS_KEY,
+  platformApplicationArn: secrets.SNS_ANDROID_ARN
+});
+
+Promise.promisifyAll(androidApp);
+
+//Registers a mobile client (android)
+exports.register = function(req, res, next) {
+	var deviceId = req.body.deviceId;
+	console.log('Registering android device with id: ' + deviceId);
+
+	androidApp
+	.addUserAsync(deviceId, null)
+	.then(function(endpointArn) {
+		return req.user.updateAsync({$set: {'login_info.endpoint_arn': endpointArn}});
+	})
+	.then(function() {
+		res.status(200).json({});
+	})
+	.catch(function(err) {
+		console.log(err);
+		res.status(500).json(err);
+	});
+};
+
+
+
+/**
+ * Handles all the validation errors thrown by the controller
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The 409 or 422 response associated with the error thrown
+ */
 var validationError = function(res, err) {
 	if (err.code === 11000) {
 		// Duplicate user
@@ -14,8 +59,13 @@ var validationError = function(res, err) {
 	return res.status(422).json(err);
 };
 
-/*
- * User login
+/**
+ * Logs a user into the application
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The user object with the associated authentication token and community
  */
 exports.login = function(req, res, next) {
 	console.log(req);
@@ -51,8 +101,12 @@ exports.login = function(req, res, next) {
 	})(req, res, next);
 };
 
-/*
- * Get list of useres
+/**
+ * Gets a list of names of all users
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with the list of users attached
  */
 exports.index = function(req, res) {
 	User.find({}, '-login_info.password', function(err, users) {
@@ -64,8 +118,13 @@ exports.index = function(req, res) {
 	});
 };
 
-/*
- * Create a new user
+/**
+ * Creates a new user
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The response with the new user object in it
  */
 exports.create = function(req, res, next) {
 	var userData = req.body;
@@ -153,8 +212,13 @@ exports.create = function(req, res, next) {
 	}
 };
 
-/*
- * Get a single user
+/**
+ * Gets a single user object
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The response with the proper user object attached
  */
 exports.show = function(req, res, next) {
 	var userId = req.params.id;
@@ -174,8 +238,13 @@ exports.show = function(req, res, next) {
 	});
 };
 
-/*
- * Delete a user
+/**
+ * Deletes a user from the database
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The 500 or 204 response of if the user is deleted successfully
  */
 exports.destroy = function(req, res) {
 	var userId = req.params.id;
@@ -189,8 +258,13 @@ exports.destroy = function(req, res) {
 	});
 };
 
-/*
- * Change a users password
+/**
+ * Changes the password for a user
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The 403 or 200 response depending on the success of changing the password
  */
 exports.changePassword = function(req, res, next) {
 	var userId = req.user._id;
@@ -220,25 +294,123 @@ exports.changePassword = function(req, res, next) {
 	});
 };
 
-/*
- * Change a users settings
+/**
+ * Transform object with nested keys into object with flat keys to facilitate
+ * updates using mongo update with $set operator
+ *
+ * @param  obj  Object sent from client with updates to document on database
+ * @example
+ * // returns {'foo': 1, 'bar.fizz.buzz': 2}
+ * transformUpdates({foo: 1, bar: {fizz: {buzz: 2}}})
+ * @return      Object with flat keys
+ */
+function transformUpdates(obj) {
+	function bar1(prnt, sub_o) {
+		if (typeof sub_o !== 'object' || sub_o.constructor === Array)
+			return prnt;
+
+		var res = [];
+
+		for (var s_key in sub_o) {
+			var egg = bar1(s_key, sub_o[s_key]);
+
+			if (egg.constructor === Array) {
+				bar1(s_key, sub_o[s_key]).map(function(path) {
+					res.push(prnt + '.' + path);
+				});
+			}
+			else
+				res.push(prnt + '.' + bar1(s_key, sub_o[s_key]));
+		}
+
+		return res;
+	}
+
+	function bar2(path, obj) {
+		var cpv = obj[path.split('.').shift()];
+
+		if (typeof cpv !== 'object' || cpv.constructor === Array)
+			return cpv;
+
+		var np = path.split('.').splice(1, path.length).join('.');
+		return bar2(np, cpv);
+	}
+
+	var res = {};
+
+	for (var fld in obj) {
+		var val = obj[fld];
+
+		if (typeof val === 'object' && val.constructor !== Array) {
+			bar1(fld, val).map(function(path) {
+				res[path] = bar2(path, obj);
+			});
+		}
+		else
+			res[fld] = val;
+	}
+
+	return res;
+}
+
+/**
+ * Change the User Settings
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The 409 or 200 response depending on success of changing the user settings
  */
 exports.changeSettings = function(req, res, next) {
 	var userId = req.user._id;
-	var updated_info = req.body;
-	
-	User.update({ '_id' : userId}, updated_info, function(err) {
+	var updates = [];
+	var query, tmp;
+
+	if (req.body.caretaker_info.availability) {
+		tmp = req.body.caretaker_info.availability;
+		//var update = { $push: { 'caretaker_info.availability': { $each: tmp } } };
+		var update = {$set: {'caretaker_info.availability': tmp}};
+
+		updates.push(User.updateAsync({_id: userId}, update));
+	}
+
+	delete req.body.caretaker_info.availability;
+	updates.push(User.updateAsync({_id: userId}, {$set: transformUpdates(req.body)}));
+
+	Promise.all(updates).then(function() {
+		console.log(arguments);
+		res.status(200).json({});
+	});
+
+	/*console.log(JSON.stringify(updates));
+
+	User.update({_id: userId}, {$set: updates}, function(err) {
+		if (err) {
+			console.log(err);
+			res.status(500).send(err);
+		}
+		else {
+			res.status(200).json({});
+		}
+	});*/
+
+	/*User.update({ '_id' : userId}, updated_info, function(err) {
 		if (err) {
 			console.log('err = ' + err);
 			return res.status(409).send(err);
 		}
 
-		res.sendStatus(200);
-	});
+		res.status(200).json({});
+	});*/
 };
 
-/*
- * Get my info
+/**
+ * Gets the information of a user
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The user object associated with the user id.
  */
 exports.me = function(req, res, next) {
 	var userId = req.user._id;
@@ -255,5 +427,118 @@ exports.me = function(req, res, next) {
 		}
 
 		res.json(user);
+	});
+};
+
+exports.setAvailability = function(req, res) {
+	var isAvailable = req.body.is_available;
+	var duration = req.body.duration;
+
+	User
+	.update(
+		{_id: req.user._id},
+		{$set: {'caretaker_info.global_availability': isAvailable}}
+	)
+	.exec(function(err, user) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			if (duration) {
+				var resetDate = moment().add(moment.duration(duration, 'hours'));
+				req.app.get('agenda').schedule(
+					resetDate.toDate(), 'reset availability', {userId: req.user._id}
+				);
+			}
+
+			res.status(200).json({});
+		}
+	});
+};
+
+exports.getScheduledAvailability = function(req, res) {
+	User
+	.findOne({_id: req.user._id})
+	.select('caretaker_info.availability')
+	.exec(function(err, user) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else if (!user) {
+			res.status(404).json({});
+		}
+		else {
+			var payload = {
+				is_available: user.isAvailableSchedule(moment.utc())
+			};
+
+			res.status(200).json(payload);
+		}
+	});
+};
+
+exports.getGlobalAvailability = function(req, res) {
+	User
+	.findOne({_id: req.user._id})
+	.select('caretaker_info.global_availability')
+	.exec(function(err, user) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else if (!user) {
+			res.status(404).json({});
+		}
+		else {
+			var payload = {
+				is_available: user.isAvailableGlobal()
+			};
+
+			res.status(200).json(payload);
+		}
+	});
+};
+
+exports.updateAvailability = function(req, res) {
+	var availabilityId = req.params.availability_id;
+	req.body._id = availabilityId;
+
+	User
+	.update(
+		{
+			_id: req.user._id,
+			'caretaker_info.availability._id': availabilityId
+		},
+		{$set: {'caretaker_info.availability.$': req.body}},
+		function(err, numAffected) {
+			if (err) {
+				console.log(err);
+				res.status(500).json(err);
+			}
+			else {
+				res.status(200).json({});
+			}
+	});
+};
+
+exports.removeAvailability = function(req, res) {
+	var availabilityId = req.params.availability_id;
+
+	req.user.caretaker_info.availability.pull({_id: availabilityId});
+
+	req
+	.user
+	.update(
+		{'caretaker_info.availability': req.user.caretaker_info.availability},
+		function(err, numAffected) {
+			if (err) {
+				console.log(err);
+				res.status(500).json(err);
+			}
+			else {
+				res.status(204).json({});
+			}
 	});
 };

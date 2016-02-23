@@ -25,7 +25,7 @@ var listSchema = new Schema({
 var grocerySchema = new Schema({
 	community_id: {
 		type: Schema.Types.ObjectId,
-		require: true,
+		required: true,
 		ref: 'Community'
 	},
 	item_list: [listSchema]

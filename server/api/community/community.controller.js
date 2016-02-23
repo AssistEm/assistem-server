@@ -3,6 +3,14 @@ var Grocery = require('./grocery/grocery.model');
 var mongoose = require('mongoose');
 var _ = require('lodash');
 
+
+/**
+ * Handles Validation errors and general errors thrown by the controller
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  err  The error thrown by the controller
+ * @return      The 422, 409, or 500 response
+ */
 function errorHandler(res, err, payload) {
 	if (err.name === 'ValidationError') {
 		res.status(422).json(err);
@@ -15,8 +23,12 @@ function errorHandler(res, err, payload) {
 	}
 }
 
-/*
- * Get list of all communities
+/**
+ * Gets a list of all the communities
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with the proper communities attached
  */
 exports.index = function(req, res) {
 	Community.find({}, function(err, communities) {
@@ -28,8 +40,12 @@ exports.index = function(req, res) {
 	});
 };
 
-/*
- * Get a community of a specific user
+/**
+ * Gets the communities of a specific user
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with the proper communities attached
  */
 exports.myCommunities = function(req, res) {
 	var user = req.user;
@@ -49,8 +65,13 @@ exports.myCommunities = function(req, res) {
 	});
 };
 
-/*
- * Create a community
+/**
+ * Creates a community
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The response with new community attached
  */
 module.exports.createCommunity = function(req, res, next) {
 	var b = req.body;
@@ -58,6 +79,7 @@ module.exports.createCommunity = function(req, res, next) {
 	var communityData = b.community;
 
 	var communityToSave = null;
+	var groceryListToSave = null;
 	var userToSave = res.locals.user;
 
 	if (userData.type.toLowerCase() === 'caretaker') {
@@ -65,86 +87,116 @@ module.exports.createCommunity = function(req, res, next) {
 		communityToSave = res.locals.community;
 
 		communityToSave.caretakers.push(userToSave._id);
+
+		// if it is the first caretaker to join the community,
+		// set him/her as the primary caretaker
+		if (communityToSave.caretakers.length === 1) {
+			communityToSave.primary_caretaker = userToSave._id;
+		}
+
 		userToSave.caretaker_info.communities.push(communityToSave._id);
 	}
 	else {
 		// create new community
 		communityToSave = _.merge(new Community(), communityData);
-		groceryList = new Grocery({community_id: communityToSave._id});
-		communityToSave.grocery_list_id = groceryList._id;
+
+		// create a new grocery list
+		groceryListToSave =  new Grocery({community_id: communityToSave._id});
+		communityToSave.grocery_list_id = groceryListToSave._id;
 
 		communityToSave.patient = userToSave._id;
 		userToSave.patient_info.community_id = communityToSave._id;
 	}
 
-	communityToSave.save(function(err, community) {
+	communityToSave.save(function(err, savedCommunity) {
 		if (err) {
-			// nothing saved yet, abort with erro
+			// nothing saved yet, abort with error
 			var payload = {
 				err: err, user: userData, community: communityData
 			};
 			errorHandler(res, err, payload);
 		}
 		else {
-			groceryList.save(function(err, savedGroceryList) {
-				if (err) {
-					// remove id from community
-					community.update({$unset: {grocery_list_id: ""}}).exec();
-					savedGroceryList.remove();
+			// add created/updated community to payload ## payload->ADD COMMUNITY
+			res.locals.payload.community = savedCommunity;
 
-					var payload = {
-						err: err, user: userData, community: communityData
-					};
-					errorHandler(res, err, payload);
-				}
-				else {
-					// add created/updated community to payload ## payload->ADD COMMUNITY
-					res.locals.payload.community = community;
-
-					// ## user->SAVE INSTANCE
-					userToSave.save(function(err, user) {
-						if (err) {
-							// community already saved
-							// caretaker: repair caretakers array
-							// patient: community no longer usable, delete created community
-
-							if (userData.type.toLowerCase() === 'caretaker') {
-								// caretaker
-								// TODO: use lodash.without(), mongodb -> update with $pull operator
-								var recIdx = community.caretakers.indexOf(userToSave._id);
-								community.caretakers.splice(recIdx, 1);
-								var recArr = community.caretakers;
-
-								Community.update({'_id': community._id}, {'caretakers': recArr}).exec();
-							}
-							else {
-								// patient
-								community.remove();
-							}
-
-							var payload = {
-								err: err, user: userData, community: communityData
-							};
-							errorHandler(res, err, payload);
-
-
-							//res.status(400).json({err: err, user: userData, community: communityData});
-						}
-						else {
-							// add updated user to payload ## payload->ADD USER
-							res.locals.payload.user = user;
-
-							res.json(res.locals.payload);
-						}
-					});
-				}
-			});
+			if (userData.type.toLowerCase() === 'patient') {
+				saveGroceryList(savedCommunity);
+			}
+			else {
+				saveUser(savedCommunity, null);
+			}
 		}
 	});
+
+	/**
+	 * Saves a grocery list to a community
+	 *
+	 * @param  community  The community to save the grocery list to
+	 * @return            VOID (saves the community)
+	 */
+	function saveGroceryList(community) {
+		groceryListToSave.save(function(err, savedGroceryList) {
+			if (err) {
+				// community no longer usable, delete created community
+				community.remove();
+
+				var payload = {
+					err: err, user: userData, community: communityData
+				};
+				errorHandler(res, err, payload);
+			}
+			else {  // SAVED NEW GROCERY LIST
+				saveUser(community, savedGroceryList);
+			}
+		});
+	}
+
+	/**
+	 * Saves a user or grocery list in the community
+	 *
+	 * @param  community    The community of the user to save
+	 * @param  groceryList  The grocery list to save
+	 * @return              VOID (saves the community)
+	 */
+	function saveUser(community, groceryList) {
+		userToSave.save(function(err, user) {
+			if (err) {
+				// community already saved, therefore
+				// caretaker: repair caretakers array
+				// patient: community/groceryList no longer usable, delete both
+
+				if (userData.type.toLowerCase() === 'caretaker') {
+					// caretaker
+					community.update({$pull: {'caretakers': userToSave._id}}).exec();
+				}
+				else {
+					// patient
+					community.remove();
+					groceryList.remove();
+				}
+
+				var payload = {
+					err: err, user: userData, community: communityData
+				};
+				errorHandler(res, err, payload);
+			}
+			else {
+				// add updated user to payload ## payload->ADD USER
+				res.locals.payload.user = user;
+				res.json(res.locals.payload);
+			}
+		});
+	}
 };
 
-/*
- * Update a community
+/**
+ * Updates a community
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @param  next The next element in the middleware
+ * @return      The response with the proper communities attached
  */
 exports.update = function(req, res, next) {
 	var communityId = req.params.id;
@@ -172,8 +224,12 @@ exports.update = function(req, res, next) {
 	});
 };
 
-/*
- * Delete a community
+/**
+ * Deletes a specific community.
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      A 500, 404, or 204 response whether the delete was successful
  */
 exports.delete = function(req, res) {
 	var communityId = req.params.id;
@@ -189,5 +245,36 @@ exports.delete = function(req, res) {
 		}
 
 		return res.sendStatus(204);
+	});
+};
+
+exports.caretakers = function(req, res) {
+	req
+	.community
+	.populate('caretakers', function(err, community) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			res.status(200).json(community.caretakers);
+		}
+	});
+};
+
+exports.makePrimary = function(req, res) {
+	var caretakerId = req.body.caretaker_id;
+
+	req
+	.community
+	.update({$set: {primary_caretaker: caretakerId}})
+	.exec(function(err, doc) {
+		if (err) {
+			console.log(err);
+			res.status(500).json(err);
+		}
+		else {
+			res.status(200).json({});
+		}
 	});
 };

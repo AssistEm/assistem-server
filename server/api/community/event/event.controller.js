@@ -4,6 +4,13 @@ var moment = require('moment');
 var _ = require('lodash');
 var Promise = require('bluebird');
 
+/**
+ * Gets an array of event objects
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      an array of objects representing selected events
+ */
 exports.index = function(req, res) {
 	// var date = new Date();
 	// var month, day;
@@ -44,7 +51,7 @@ exports.index = function(req, res) {
 				}
 				else{
 					console.log(events);
-					res.send(events);	
+					res.json(events);	
 				}	
 			});
 
@@ -84,6 +91,13 @@ exports.index = function(req, res) {
 	// 	});
 };
 
+/**
+ * Creates a new event
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with the new event object in an array
+ */
 exports.create = function(req, res) {
 	var b = req.body;
 	var newEvent = null;
@@ -157,7 +171,7 @@ exports.create = function(req, res) {
 					next(err);
 				}
 
-				res.send(docs);
+				res.json(docs);
 			});
 		});
 	} else {
@@ -170,15 +184,20 @@ exports.create = function(req, res) {
 				next(err);
 			}
 
-			res.send([newEvent]);
+			res.json([newEvent]);
 		});
 	}
 };
 
-// update single event or event from group
-// single: just update single event
-// group: either update all in group, selected event and newer, only selected
-// event (in which case we remove from group)
+/**
+ * Updates selected evens. Single or group. If single, just update single. If
+ * group, either update all in group, selected event and new, only selected
+ * event (in which case we remove from group)
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      The response with an array of the updated events
+ */
 exports.update = function(req, res) {
 	var b = _.clone(req.body, true);
 
@@ -258,7 +277,7 @@ exports.update = function(req, res) {
 					updatedEvents.push(updatePromise);
 				}
 				Promise.all(updatedEvents).then(function() {
-					res.send(event);
+					res.json(event);
 				});
 			});
 		}
@@ -275,17 +294,21 @@ exports.update = function(req, res) {
 					next(err);
 				}
 
-				res.send(event);
+				res.json(event);
 			});
 		}
 	});
 };
-/*
+
+/**
  * Deletes an event from a community or a group of events in the future
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      A status code of 204 when successfully deleted
  */
 exports.delete = function(req, res) {
 	var delete_repeating = req.query.delete_repeating;
-	console.log("DELETE REPEATING = " + delete_repeating);
 
 	var event_id = req.params.event_id;
 
@@ -298,7 +321,7 @@ exports.delete = function(req, res) {
 			}
 			if(!current_event.length)
 			{
-				res.status(404).end();
+				res.status(404).json({});
 			}
 			else{
 
@@ -311,7 +334,7 @@ exports.delete = function(req, res) {
 					if(err){
 						next(err);
 					}
-					res.status(204).end();
+					res.status(204).json({});
 				});
 
 				//If we want to remove all the events in a group and not just the future ones
@@ -334,7 +357,7 @@ exports.delete = function(req, res) {
 			if(err){
 				next(err);
 			}
-			res.send(204);
+			res.status(204).json({});
 		});
 		
 	}
@@ -342,8 +365,13 @@ exports.delete = function(req, res) {
 
 };
 
-/*
+/**
  * Volunteer for an event
+ *
+ * @param  req  The request object of the HTTP request
+ * @param  res  The response that will be returned to the client
+ * @return      A status code representing the success of the request to
+ * change volunteer status
  */
 exports.volunteer = function(req, res) {
 	var b = req.body;

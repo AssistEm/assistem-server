@@ -13,13 +13,17 @@ Promise.promisifyAll(Community.prototype);
 Promise.promisifyAll(User);
 Promise.promisifyAll(User.prototype);
 
-//var nock = require('nock');
-
 // Requires running server, currently uses server on local machine
 // TODO: Research, mocking so that we don't have to mess with production data
 var serverRoot = "localhost";
 mongoose.connect(serverRoot + '/ct1');
 
+
+/**
+ * Creates a dummy community 
+ *
+ * @return  The dummy community
+ */
 function stub() {
 	return {
 		name: faker.name.findName(),

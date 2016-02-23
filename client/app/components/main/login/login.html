@@ -1,10 +1,11 @@
 <h3>Login Page</h3>
 
-<form action="/login" method="POST">
+<form ng-submit="submit(form)">
 	<p>Email</p>
-	<input type="text" name="email" placeholder="Email">
+	<input type="email" ng-model="form.email" placeholder="Email">
+
 	<p>Password</p>
-	<input type="password" name="password" placeholder="Password">
+	<input type="password" ng-model="form.password" placeholder="Password">
 	<br/>
 	<br/>
 	<input type="submit" value="Submit">

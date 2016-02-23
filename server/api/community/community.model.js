@@ -1,8 +1,8 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
-/*
- * Schema definition
+/**
+ * The Community Schema Definition
  */
 var communitySchema = new Schema({
 	name: {
@@ -12,12 +12,20 @@ var communitySchema = new Schema({
 	},
 	patient: {
 		type: Schema.Types.ObjectId,
-		required: true
+		required: true,
+		ref: 'User'
 	},
-	caretakers: [Schema.Types.ObjectId],
+	caretakers: [{
+		type: Schema.Types.ObjectId,
+		ref: 'User'
+	}],
 	privacy: {
 		type: Boolean,
 		required: true
+	},
+	primary_caretaker: {
+		type: Schema.Types.ObjectId,
+		ref: 'User'
 	},
 	grocery_list_id: Schema.Types.ObjectId
 });
