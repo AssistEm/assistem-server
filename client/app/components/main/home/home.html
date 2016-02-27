@@ -24,6 +24,15 @@
 						placeholder="Last name">
 					</div>
 
+					 <div class="form-group">
+					 		 <label for="profile-picture">Profile Picture</label>
+						   <input type="file" ng-file-select="onFileSelect($files)" >
+						   <span ng-show="imageSrc">
+						   		Preview:<br />
+						   		<img class="img-thumbnail" ng-src="{{imageSrc}}" /><br/>
+						   </span>
+					</div>
+
 					<div class="form-group">
 						<label for="email">Email Address</label>
 						<input ng-model="user.email" type="email" class="form-control" id="email"

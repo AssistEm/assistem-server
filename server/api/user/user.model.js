@@ -42,6 +42,7 @@ var passwordValidator = [
 var UserSchema = new Schema({
 	first_name: String,
 	last_name: String,
+	profile_picture_url: String,
 	type: {
 		type: String,
 		required: true

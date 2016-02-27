@@ -7,18 +7,22 @@ var _ = require('lodash');
 var secrets = require('../community/ping/secrets');
 var SNS = require('sns-mobile');
 var Promise = require('bluebird');
+var AWS = require('aws-sdk');
 
 Promise.promisifyAll(User);
 Promise.promisifyAll(User.prototype);
 
 var androidApp = new SNS({
   platform: SNS.SUPPORTED_PLATFORMS.ANDROID,
-  region: 'us-west-2',
+  region: "us-west-2",
   apiVersion: '2010-03-31',
   accessKeyId: secrets.SNS_KEY_ID,
   secretAccessKey: secrets.SNS_ACCESS_KEY,
   platformApplicationArn: secrets.SNS_ANDROID_ARN
 });
+
+AWS.config = secrets.AWS_CONFIG;
+var s3Bucket = new AWS.S3( { params: {Bucket: 'assistem-images'} } );
 
 Promise.promisifyAll(androidApp);
 
@@ -129,6 +133,7 @@ exports.create = function(req, res, next) {
 	var b = req.body;
 	var userData = b.user;
 	var communityData = b.community;
+	var profilePictureBinaryImage = b.profile_picture;
 
 	// check the type of the new user
 	if (userData.type.toLowerCase() === 'caretaker') { // caretaker
@@ -195,7 +200,9 @@ exports.create = function(req, res, next) {
 					
 					res.locals.community = community;
 					res.locals.payload = payload;
-					next();
+					uploadImageToAWS(newCaretaker, profilePictureBinaryImage, function() {
+						next();
+					});
 				}
 			});
 		}
@@ -206,9 +213,10 @@ exports.create = function(req, res, next) {
 		var payload = {
 			token: auth.createToken({_id: newPatient._id}),
 		};
-
 		res.locals.payload = payload;
-		next();
+		uploadImageToAWS(newPatient, profilePictureBinaryImage, function() {
+			next();
+		});
 	}
 };
 
@@ -294,6 +302,27 @@ exports.changePassword = function(req, res, next) {
 	});
 };
 
+function uploadImageToAWS(user, binaryImage, callback) {
+	var userId = user._id;
+	buf = new Buffer(binaryImage.replace(/^data:image\/\w+;base64,/, ""),'base64');
+	var params = {
+		Key: userId.toString(), 
+		Body: buf,
+		ContentEncoding: 'base64',
+		ContentType: 'image/jpeg',
+		ACL: 'public-read'
+	};
+	s3Bucket.upload(params, function(err, data) {
+		if (err) {
+		  console.log("Error uploading profile picture: ", err);
+		} else {
+		  console.log("Successfully uploaded image to AWS");
+		  user.profile_picture_url = data.Location;
+		}
+		callback();
+	});
+};
+
 /**
  * Transform object with nested keys into object with flat keys to facilitate
  * updates using mongo update with $set operator
@@ -351,7 +380,7 @@ function transformUpdates(obj) {
 	}
 
 	return res;
-}
+};
 
 /**
  * Change the User Settings
