@@ -13,9 +13,24 @@
 			<div class="col-md-4">
 				<form ng-submit="submit()">
 					<div class="form-group">
-						<label for="name">Name</label>
-						<input ng-model="user.name" type="name" class="form-control" id="name"
-						placeholder="You name">
+						<label for="first-name">First Name</label>
+						<input ng-model="user.first_name" type="name" class="form-control" id="first-name"
+						placeholder="First name">
+					</div>
+
+					<div class="form-group">
+						<label for="last-name">Last Name</label>
+						<input ng-model="user.last_name" type="name" class="form-control" id="last_name"
+						placeholder="Last name">
+					</div>
+
+					 <div class="form-group">
+					 		 <label for="profile-picture">Profile Picture</label>
+						   <input type="file" ng-file-select="onFileSelect($files)" >
+						   <span ng-show="imageSrc">
+						   		Preview:<br />
+						   		<img class="img-thumbnail" ng-src="{{imageSrc}}" /><br/>
+						   </span>
 					</div>
 
 					<div class="form-group">
@@ -28,6 +43,27 @@
 						<label for="password">Password</label>
 						<input ng-model="user.password" type="password" class="form-control" id="password"
 						placeholder="Create a password">
+					</div>
+
+					<div class="form-group">
+						<label for="phone">Phone</label>
+						<input ng-model="user.phone" type="phone" class="form-control" id="phone"
+						placeholder="Insert phone number">
+					</div>
+
+					<div class="form-group">
+						<label for="type">Type</label> <br/>
+						<label for="type-patient">
+							<input name="type" ng-model="user.type" type="radio" class="form-radio" id="type-patient" value="patient">
+						Patient</label>
+						<label for="type-caretaker">
+							<input name="type" ng-model="user.type" type="radio" class="form-radio" id="type-caretaker" value="caretaker">
+						Caretaker</label>
+					</div>
+
+					<div class="form-group">
+						<label for="community">Community name or patient's email</label>
+							<input ng-model="community" type="text" class="form-control" id="community" placeholder="Type community's name or patient's email">
 					</div>
 
 					<input type="submit" class="btn btn-success btn-lg" value="Sign up!">
