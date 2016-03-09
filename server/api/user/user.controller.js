@@ -200,9 +200,9 @@ exports.create = function(req, res, next) {
 					
 					res.locals.community = community;
 					res.locals.payload = payload;
-					uploadImageToAWS(newCaretaker, profilePictureBinaryImage, function() {
-						next();
-					});
+					//uploadImageToAWS(newCaretaker, profilePictureBinaryImage, function() {
+					next();
+					//});
 				}
 			});
 		}
@@ -232,7 +232,7 @@ exports.show = function(req, res, next) {
 	var userId = req.params.id;
 
 	if (req.user.type.toLowerCase() === 'caretaker') {
-		var community = req.user.caretaker_info.communities;
+		var community = req.user.type.toLowerCase() === 'caretaker' ? req.user.caretaker_info.communities : req.user.patient_info.community_id;	
 		User.findById(userId).where('_id').in(community).exec(function(err, user) {
 			if (err) {
 				return next(err);
