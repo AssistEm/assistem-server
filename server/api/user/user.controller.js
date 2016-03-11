@@ -214,9 +214,9 @@ exports.create = function(req, res, next) {
 			token: auth.createToken({_id: newPatient._id}),
 		};
 		res.locals.payload = payload;
-		uploadImageToAWS(newPatient, profilePictureBinaryImage, function() {
+		//uploadImageToAWS(newPatient, profilePictureBinaryImage, function() {
 			next();
-		});
+		//});
 	}
 };
 
