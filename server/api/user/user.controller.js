@@ -239,20 +239,37 @@ exports.create = function(req, res, next) {
  */
 exports.show = function(req, res, next) {
 	var userId = req.params.id;
-	var community = req.user.caretaker_info.communities;
 
-	User.findById(userId).in(communities).exec(function(err, user) {
-		if (err) {
-			return next(err);
-		}
+	if (req.user.type.toLowerCase() === 'caretaker') {
+		var community = req.user.type.toLowerCase() === 'caretaker' ? req.user.caretaker_info.communities : req.user.patient_info.community_id;	
+		User.findById(userId).where('_id').in(community).exec(function(err, user) {
+			if (err) {
+				return next(err);
+			}
 
-		if (!user) {
-			return res.sendStatus(401);
-		}
+			if (!user) {
+				return res.sendStatus(401);
+			}
 
-		// TODO Maybe don't return the complete user object
-		res.json(user);
-	});
+			// TODO Maybe don't return the complete user object
+			res.json(user);
+		});
+	}
+	else {
+		var community = req.user.patient_info.community_id;
+		User.findById(userId).where('_id').in(community).exec(function(err, user) {
+			if (err) {
+				return next(err);
+			}
+
+			if (!user) {
+				return res.sendStatus(401);
+			}
+
+			// TODO Maybe don't return the complete user object
+			res.json(user);
+		});
+	}
 };
 
 /**
