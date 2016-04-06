@@ -200,9 +200,14 @@ exports.create = function(req, res, next) {
 					
 					res.locals.community = community;
 					res.locals.payload = payload;
-					//uploadImageToAWS(newCaretaker, profilePictureBinaryImage, function() {
-					next();
-					//});
+					if (profilePictureBinaryImage) {
+						uploadImageToAWS(newCaretaker, profilePictureBinaryImage, function() {
+							next();
+						});
+					} else {
+						next();
+					}
+
 				}
 			});
 		}
@@ -214,9 +219,13 @@ exports.create = function(req, res, next) {
 			token: auth.createToken({_id: newPatient._id}),
 		};
 		res.locals.payload = payload;
-		//uploadImageToAWS(newPatient, profilePictureBinaryImage, function() {
+		if (profilePictureBinaryImage) {
+			uploadImageToAWS(newPatient, profilePictureBinaryImage, function() {
+				next();
+			});
+		} else {
 			next();
-		//});
+		}
 	}
 };
 
